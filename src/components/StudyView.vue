@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Volume2, Shuffle, ChevronLeft, ChevronRight, Check, BookOpen, Layers } from 'lucide-vue-next';
+import { Volume2, Shuffle, ChevronLeft, ChevronRight, Check, BookOpen } from 'lucide-vue-next';
 import type { Word, WordCategory } from '../types';
 import { CATEGORY_LABELS } from '../data/words';
 import { speakKorean } from '../utils/speech';
@@ -38,78 +38,51 @@ const handlePlayAudio = (text: string, event?: Event) => {
 </script>
 
 <template>
-  <section class="study-container mx-auto max-w-[880px] pb-6 pt-5 md:pt-10">
-    <!-- Header session info and stats -->
-    <div class="nuri-entrance nuri-entrance-2 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-      <div>
-        <p class="nuri-mono text-[10px] uppercase font-bold tracking-wider text-[#5848c4]">
-          Sesión de estudio · Coreano → Español
-        </p>
-        <h1 class="main-title mt-2 text-[#1e2338]">
-          Una palabra a la vez<span class="text-[#5848c4]">.</span>
-        </h1>
-      </div>
+  <section class="study-container mx-auto max-w-[880px] pb-6 pt-2 sm:pt-6">
+    <!-- Streamlined, Breathable Top Toolbar -->
+    <div class="study-toolbar nuri-entrance">
+      <!-- Category chips and Shuffle toggle row -->
+      <div class="toolbar-chips-row">
+        <div class="category-scroll-list no-scrollbar">
+          <button
+            v-for="cat in categoryCounts"
+            :key="cat.category"
+            type="button"
+            @click="emit('select-category', cat.category)"
+            :class="['nuri-cat-chip', selectedCategory === cat.category ? 'is-active' : '']"
+          >
+            <span>{{ cat.label }}</span>
+            <span class="nuri-cat-badge">{{ cat.count }}</span>
+          </button>
+        </div>
 
-      <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2.5 sm:gap-3 w-full sm:w-auto sm:pb-1">
         <button
           type="button"
           @click="emit('toggle-random')"
           :aria-pressed="randomMode"
-          :class="['random-toggle-btn flex items-center gap-1.5', randomMode ? 'is-active' : '']"
+          :class="['random-toggle-btn shrink-0', randomMode ? 'is-active' : '']"
+          title="Modo aleatorio"
         >
           <Shuffle :size="13" />
           <span>Aleatorio</span>
         </button>
+      </div>
 
-        <div class="text-right">
-          <p class="nuri-mono text-[9px] uppercase text-[#6c7393]">dominio</p>
-          <p class="nuri-display stat-number leading-none text-[#1e2338]">{{ progressPercent }}%</p>
+      <!-- Single, Modern Progress Indicator -->
+      <div class="study-progress-section">
+        <div class="progress-meta">
+          <span class="progress-title">
+            <span class="dot-indicator" />
+            <span>Aprendidas: <strong class="text-[#1e2338]">{{ knownCount }}</strong> de {{ totalCount }}</span>
+          </span>
+          <span class="progress-percentage nuri-mono font-bold">{{ progressPercent }}%</span>
         </div>
-
-        <div class="stat-divider" />
-
-        <div>
-          <p class="nuri-mono text-[9px] uppercase text-[#6c7393]">pendientes</p>
-          <p class="nuri-display stat-number leading-none text-[#1e2338]">{{ queueLength }}</p>
+        <div class="progress-track">
+          <div
+            class="progress-fill"
+            :style="{ width: `${Math.max(progressPercent, 2)}%` }"
+          />
         </div>
-      </div>
-    </div>
-
-    <!-- Category selector horizontal bar -->
-    <div class="nuri-entrance mt-6">
-      <div class="flex items-center gap-1.5 mb-2.5 text-xs font-semibold text-[#6c7393]">
-        <Layers :size="13" />
-        <span>Filtrar por categoría:</span>
-      </div>
-      <div class="category-scroll-list no-scrollbar flex gap-2 overflow-x-auto pb-2 pt-1 -mx-2 px-2 sm:mx-0 sm:px-0">
-        <button
-          v-for="cat in categoryCounts"
-          :key="cat.category"
-          type="button"
-          @click="emit('select-category', cat.category)"
-          :class="['nuri-cat-chip', selectedCategory === cat.category ? 'is-active' : '']"
-        >
-          <span>{{ cat.label }}</span>
-          <span class="nuri-cat-badge">{{ cat.count }}</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Progress bar & state info -->
-    <div class="nuri-entrance nuri-entrance-3 mt-4">
-      <div class="mb-2 flex items-center justify-between px-1">
-        <p class="text-xs text-[#6c7393]">
-          {{ !activeWord ? 'Sesión completa' : 'Toca la tarjeta para descubrir el significado' }}
-        </p>
-        <p class="nuri-mono text-[10px] text-[#6c7393]">
-          {{ knownCount }} de {{ totalCount }} conocidas
-        </p>
-      </div>
-      <div class="progress-track">
-        <div
-          class="progress-fill"
-          :style="{ width: `${Math.max(progressPercent, 2)}%` }"
-        />
       </div>
     </div>
 
@@ -123,7 +96,7 @@ const handlePlayAudio = (text: string, event?: Event) => {
 
     <template v-else>
       <!-- FLASHCARD 3D SCENE -->
-      <div class="nuri-card-scene mt-6">
+      <div class="nuri-card-scene mt-3 sm:mt-5">
         <div
           role="button"
           tabindex="0"
@@ -164,24 +137,19 @@ const handlePlayAudio = (text: string, event?: Event) => {
               </div>
             </div>
 
-            <!-- Front Body: Big Korean Hangul -->
-            <div class="my-auto py-6 text-center relative z-10">
-              <p class="nuri-mono word-sublabel mb-3">
-                {{ activeWord.category === 'verb' ? 'infinitivo' : 'palabra' }}
-              </p>
+            <!-- Front Body: Big Korean Hangul (Clean, no PALABRA / ¿Qué significa?) -->
+            <div class="my-auto py-8 text-center relative z-10">
               <p
                 class="korean-hero-text"
                 :data-testid="`text-card-korean-${activeWord.id}`"
               >
                 {{ activeWord.korean }}
               </p>
-              <p class="mt-4 text-xs font-medium text-[#6c7393]">¿Qué significa?</p>
             </div>
 
             <!-- Front Footer -->
-            <div class="flex items-center justify-between text-[11px] text-[#6c7393] relative z-10">
-              <span class="font-medium">toca para voltear</span>
-              <span class="nuri-mono text-[10px]">espacio / enter</span>
+            <div class="flex items-center justify-center text-[12px] font-medium text-[#7b819f] relative z-10">
+              <span>toca para voltear</span>
             </div>
           </div>
 
@@ -214,9 +182,8 @@ const handlePlayAudio = (text: string, event?: Event) => {
               </div>
             </div>
 
-            <!-- Back Body -->
-            <div class="my-auto py-3 relative z-10">
-              <p class="nuri-mono text-[9px] uppercase tracking-wider text-[#aaa6d1] mb-2">traducción</p>
+            <!-- Back Body: Clean Translation -->
+            <div class="my-auto py-4 relative z-10">
               <p
                 class="spanish-hero-text"
                 :data-testid="`text-card-spanish-${activeWord.id}`"
@@ -313,9 +280,8 @@ const handlePlayAudio = (text: string, event?: Event) => {
             </div>
 
             <!-- Back Footer -->
-            <div class="flex items-center justify-between text-[11px] text-[#aaa6d1] relative z-10">
-              <span>significado revelado</span>
-              <span class="nuri-mono text-[10px]">toca para volver</span>
+            <div class="flex items-center justify-center text-[12px] text-[#aaa6d1] relative z-10">
+              <span class="nuri-mono text-[11px]">toca para volver</span>
             </div>
           </div>
         </div>
@@ -327,6 +293,7 @@ const handlePlayAudio = (text: string, event?: Event) => {
           type="button"
           @click="emit('go-back')"
           :disabled="!canGoBack"
+          title="Tarjeta anterior"
           aria-label="Volver a la tarjeta anterior"
           data-testid="button-previous-card"
           class="nuri-btn-back"
@@ -336,38 +303,26 @@ const handlePlayAudio = (text: string, event?: Event) => {
 
         <button
           type="button"
-          @click="emit('decision', 'review')"
-          data-testid="button-next-card"
-          class="nuri-btn-review"
-        >
-          <ChevronRight :size="18" />
-          <span>Repasar</span>
-        </button>
-
-        <button
-          type="button"
           @click="emit('decision', 'known')"
+          title="Marcar como conocida"
+          aria-label="Marcar como conocida"
           data-testid="button-mark-known"
           class="nuri-btn-known"
         >
           <Check :size="18" :stroke-width="2.6" />
           <span>Lo sé</span>
         </button>
-      </div>
 
-      <!-- Keyboard shortcuts legend (hidden on mobile touch screens) -->
-      <div class="mt-4 hidden sm:flex items-center justify-center gap-3 text-[11px] text-[#6c7393]">
-        <span class="inline-flex items-center gap-1.5">
-          <kbd class="nuri-key-chip">Espacio</kbd> voltear
-        </span>
-        <span>·</span>
-        <span class="inline-flex items-center gap-1.5">
-          <kbd class="nuri-key-chip">1</kbd> repasar
-        </span>
-        <span>·</span>
-        <span class="inline-flex items-center gap-1.5">
-          <kbd class="nuri-key-chip">2</kbd> lo sé
-        </span>
+        <button
+          type="button"
+          @click="emit('decision', 'review')"
+          title="Siguiente tarjeta"
+          aria-label="Siguiente tarjeta"
+          data-testid="button-next-card"
+          class="nuri-btn-next"
+        >
+          <ChevronRight :size="24" />
+        </button>
       </div>
     </template>
   </section>
@@ -378,35 +333,76 @@ const handlePlayAudio = (text: string, event?: Event) => {
   width: 100%;
 }
 
-.main-title {
-  font-family: var(--font-sans);
-  font-weight: 800;
-  font-size: clamp(2.2rem, 5vw, 3.4rem);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+.study-toolbar {
+  margin-bottom: 0.25rem;
 }
 
-.stat-number {
-  font-size: 1.75rem;
-  font-family: var(--font-sans);
-  font-weight: 700;
+.toolbar-chips-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
-.stat-divider {
-  width: 1px;
-  height: 2.25rem;
-  background: var(--border);
+.category-scroll-list {
+  display: flex;
+  gap: 0.375rem;
+  overflow-x: auto;
+  padding: 0.25rem 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.study-progress-section {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.45rem 0.85rem;
+  margin-top: 0.4rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+}
+
+.progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.progress-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dot-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+  display: inline-block;
+}
+
+.progress-percentage {
+  color: var(--primary);
+  font-size: 0.8125rem;
 }
 
 .random-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
   border-radius: 9999px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   color: var(--muted-foreground);
-  padding: 0.45rem 0.9rem;
+  padding: 0.35rem 0.75rem;
   font-size: 0.75rem;
   font-weight: 600;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 .random-toggle-btn:hover {
   background: #ffffff;
@@ -417,7 +413,7 @@ const handlePlayAudio = (text: string, event?: Event) => {
   background: var(--primary);
   border-color: var(--primary);
   color: #ffffff;
-  box-shadow: 0 6px 16px var(--primary-glow);
+  box-shadow: 0 4px 12px var(--primary-glow);
 }
 
 .progress-track {
@@ -496,8 +492,8 @@ const handlePlayAudio = (text: string, event?: Event) => {
 .korean-hero-text {
   font-family: var(--font-korean);
   font-weight: 800;
-  font-size: clamp(2.5rem, 8vw, 5.2rem);
-  line-height: 1;
+  font-size: clamp(3.25rem, 12vw, 5.2rem);
+  line-height: 1.15;
   color: #1e2338;
   word-break: keep-all;
 }
@@ -594,8 +590,8 @@ const handlePlayAudio = (text: string, event?: Event) => {
 
 .controls-grid {
   display: grid;
-  grid-template-columns: 52px 1fr 1fr;
-  gap: 0.5rem;
+  grid-template-columns: 52px 1fr 52px;
+  gap: 0.625rem;
   max-width: 680px;
   margin-left: auto;
   margin-right: auto;
@@ -603,7 +599,7 @@ const handlePlayAudio = (text: string, event?: Event) => {
 
 @media (min-width: 640px) {
   .controls-grid {
-    grid-template-columns: 64px 1fr 1fr;
+    grid-template-columns: 64px 1fr 64px;
     gap: 1rem;
   }
 }

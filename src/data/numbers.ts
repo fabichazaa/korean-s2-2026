@@ -174,3 +174,82 @@ export const GRAMMAR_CAPSULES: GrammarCapsule[] = [
     audioText: '몇 층이에요?',
   },
 ];
+
+// --- NÚMEROS NATIVOS COREANOS COMPLETOS (고유어 수사) ---
+export interface NativeNumberItem {
+  value: number;
+  hangul: string;
+  shortForm?: string;
+  pronunciation: string;
+  spanish: string;
+  audioText: string;
+  tip?: string;
+}
+
+export const NATIVE_NUMBERS_FULL: NativeNumberItem[] = [
+  { value: 1, hangul: '하나', shortForm: '한', pronunciation: 'ha-na / han', spanish: 'Uno (1)', audioText: '하나, 한', tip: '한 개 (1 cosa) / 한 시 (la 1:00)' },
+  { value: 2, hangul: '둘', shortForm: '두', pronunciation: 'dul / du', spanish: 'Dos (2)', audioText: '둘, 두', tip: '두 명 (2 personas) / 두 시 (las 2:00)' },
+  { value: 3, hangul: '셋', shortForm: '세', pronunciation: 'set / se', spanish: 'Tres (3)', audioText: '셋, 세', tip: '세 살 (3 años) / 세 시 (las 3:00)' },
+  { value: 4, hangul: '넷', shortForm: '네', pronunciation: 'net / ne', spanish: 'Cuatro (4)', audioText: '넷, 네', tip: '네 마리 (4 animales) / 네 시 (las 4:00)' },
+  { value: 5, hangul: '다섯', pronunciation: 'da-seot', spanish: 'Cinco (5)', audioText: '다섯' },
+  { value: 6, hangul: '여섯', pronunciation: 'yeo-seot', spanish: 'Seis (6)', audioText: '여섯' },
+  { value: 7, hangul: '일곱', pronunciation: 'il-gop', spanish: 'Siete (7)', audioText: '일곱' },
+  { value: 8, hangul: '여덟', pronunciation: 'yeo-deol', spanish: 'Ocho (8)', audioText: '여덟' },
+  { value: 9, hangul: '아홉', pronunciation: 'a-hop', spanish: 'Nueve (9)', audioText: '아홉' },
+  { value: 10, hangul: '열', pronunciation: 'yeol', spanish: 'Diez (10)', audioText: '열' },
+  { value: 11, hangul: '열하나', shortForm: '열한', pronunciation: 'yeol-ha-na', spanish: 'Once (11)', audioText: '열하나, 열한', tip: '열한 시 (las 11:00)' },
+  { value: 12, hangul: '열둘', shortForm: '열두', pronunciation: 'yeol-dul', spanish: 'Doce (12)', audioText: '열둘, 열두', tip: '열두 시 (las 12:00)' },
+  { value: 20, hangul: '스물', shortForm: '스무', pronunciation: 'seu-mul / seu-mu', spanish: 'Veinte (20)', audioText: '스물, 스무', tip: '스무 살 (20 años) / 스무 개 (20 cosas)' },
+  { value: 30, hangul: '서른', pronunciation: 'seo-reun', spanish: 'Treinta (30)', audioText: '서른' },
+  { value: 40, hangul: '마흔', pronunciation: 'ma-heun', spanish: 'Cuarenta (40)', audioText: '마흔' },
+  { value: 50, hangul: '쉰', pronunciation: 'shwin', spanish: 'Cincuenta (50)', audioText: '쉰' },
+  { value: 60, hangul: '예순', pronunciation: 'ye-sun', spanish: 'Sesenta (60)', audioText: '예순' },
+  { value: 70, hangul: '일흔', pronunciation: 'il-heun', spanish: 'Setenta (70)', audioText: '일흔' },
+  { value: 80, hangul: '여든', pronunciation: 'yeo-deun', spanish: 'Ochenta (80)', audioText: '여든' },
+  { value: 90, hangul: '아흔', pronunciation: 'a-heun', spanish: 'Noventa (90)', audioText: '아흔' },
+  { value: 100, hangul: '백', pronunciation: 'baek', spanish: 'Cien (100) (número de origen sino-coreano)', audioText: '백', tip: 'Para 100 se usa el número de origen sino-coreano (백)' },
+];
+
+// --- DÍAS DEL MES (일) 1~31 ---
+export interface MonthDayItem {
+  day: number;
+  hangul: string;
+  pronunciation: string;
+  spanish: string;
+  note?: string;
+}
+
+export const MONTH_DAYS: MonthDayItem[] = [
+  { day: 1, hangul: '일일', pronunciation: 'i-ril', spanish: 'Día 1' },
+  { day: 2, hangul: '이일', pronunciation: 'i-il', spanish: 'Día 2' },
+  { day: 3, hangul: '삼일', pronunciation: 'sa-mil', spanish: 'Día 3' },
+  { day: 4, hangul: '사일', pronunciation: 'sa-il', spanish: 'Día 4' },
+  { day: 5, hangul: '오일', pronunciation: 'o-il', spanish: 'Día 5' },
+  { day: 6, hangul: '육일', pronunciation: 'yu-gil', spanish: 'Día 6' },
+  { day: 7, hangul: '칠일', pronunciation: 'chi-ril', spanish: 'Día 7' },
+  { day: 8, hangul: '팔일', pronunciation: 'pa-ril', spanish: 'Día 8' },
+  { day: 9, hangul: '구일', pronunciation: 'gu-il', spanish: 'Día 9' },
+  { day: 10, hangul: '십일', pronunciation: 'shi-bil', spanish: 'Día 10' },
+  { day: 11, hangul: '십일일', pronunciation: 'shi-bi-ril', spanish: 'Día 11' },
+  { day: 12, hangul: '십이일', pronunciation: 'shi-bi-il', spanish: 'Día 12' },
+  { day: 13, hangul: '십삼일', pronunciation: 'ship-sam-il', spanish: 'Día 13' },
+  { day: 14, hangul: '십사일', pronunciation: 'ship-sa-il', spanish: 'Día 14' },
+  { day: 15, hangul: '십오일', pronunciation: 'ship-o-il', spanish: 'Día 15' },
+  { day: 16, hangul: '십육일', pronunciation: 'shim-nyu-gil', spanish: 'Día 16', note: 'Asimilación: 십육일 → [심뉴길]' },
+  { day: 17, hangul: '십칠일', pronunciation: 'ship-chi-ril', spanish: 'Día 17' },
+  { day: 18, hangul: '십팔일', pronunciation: 'ship-pa-ril', spanish: 'Día 18' },
+  { day: 19, hangul: '십구일', pronunciation: 'ship-gu-il', spanish: 'Día 19' },
+  { day: 20, hangul: '이십일', pronunciation: 'i-shi-bil', spanish: 'Día 20' },
+  { day: 21, hangul: '이십일일', pronunciation: 'i-shi-bi-ril', spanish: 'Día 21' },
+  { day: 22, hangul: '이십이일', pronunciation: 'i-shi-bi-il', spanish: 'Día 22' },
+  { day: 23, hangul: '이십삼일', pronunciation: 'i-ship-sam-il', spanish: 'Día 23' },
+  { day: 24, hangul: '이십사일', pronunciation: 'i-ship-sa-il', spanish: 'Día 24' },
+  { day: 25, hangul: '이십오일', pronunciation: 'i-ship-o-il', spanish: 'Día 25' },
+  { day: 26, hangul: '이십육일', pronunciation: 'i-shim-nyu-gil', spanish: 'Día 26', note: 'Asimilación: 이십육일 → [이심뉴길]' },
+  { day: 27, hangul: '이십칠일', pronunciation: 'i-ship-chi-ril', spanish: 'Día 27' },
+  { day: 28, hangul: '이십팔일', pronunciation: 'i-ship-pa-ril', spanish: 'Día 28' },
+  { day: 29, hangul: '이십구일', pronunciation: 'i-ship-gu-il', spanish: 'Día 29' },
+  { day: 30, hangul: '삼십일', pronunciation: 'sam-shi-bil', spanish: 'Día 30' },
+  { day: 31, hangul: '삼십일일', pronunciation: 'sam-shi-bi-ril', spanish: 'Día 31' },
+];
+

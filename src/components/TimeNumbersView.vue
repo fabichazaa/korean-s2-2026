@@ -9,16 +9,20 @@ import {
   Hash,
   RefreshCw,
   ArrowRight,
+  ListOrdered,
+  CalendarDays,
 } from 'lucide-vue-next';
 import {
   BASIC_NUMBERS,
   formatKoreanTime,
   DAYS_OF_WEEK,
   GRAMMAR_CAPSULES,
+  NATIVE_NUMBERS_FULL,
+  MONTH_DAYS,
 } from '../data/numbers';
 import { speakKorean } from '../utils/speech';
 
-type SubSection = 'clock' | 'numbers' | 'days' | 'grammar';
+type SubSection = 'clock' | 'native_numbers' | 'month_days' | 'numbers' | 'days' | 'grammar';
 const currentTab = ref<SubSection>('clock');
 
 // Clock Trainer State
@@ -81,6 +85,24 @@ const playAudio = (text: string, e?: Event) => {
 
         <button
           type="button"
+          @click="currentTab = 'native_numbers'"
+          :class="['sub-tab-btn flex items-center gap-2 shrink-0', currentTab === 'native_numbers' ? 'is-active' : '']"
+        >
+          <ListOrdered :size="15" />
+          <span>Números Nativos (1~100)</span>
+        </button>
+
+        <button
+          type="button"
+          @click="currentTab = 'month_days'"
+          :class="['sub-tab-btn flex items-center gap-2 shrink-0', currentTab === 'month_days' ? 'is-active' : '']"
+        >
+          <CalendarDays :size="15" />
+          <span>Días del Mes (1~31일)</span>
+        </button>
+
+        <button
+          type="button"
           @click="currentTab = 'numbers'"
           :class="['sub-tab-btn flex items-center gap-2 shrink-0', currentTab === 'numbers' ? 'is-active' : '']"
         >
@@ -103,7 +125,7 @@ const playAudio = (text: string, e?: Event) => {
           :class="['sub-tab-btn flex items-center gap-2 shrink-0', currentTab === 'grammar' ? 'is-active' : '']"
         >
           <HelpCircle :size="15" />
-          <span>Preguntas clave (누구, 어디...)</span>
+          <span>Preguntas clave</span>
         </button>
       </div>
     </div>
@@ -254,7 +276,153 @@ const playAudio = (text: string, e?: Event) => {
       </div>
     </div>
 
-    <!-- TAB 2: TABLA SINO VS NATIVO -->
+    <!-- TAB: NÚMEROS NATIVOS COMPLETOS (1-100) -->
+    <div v-else-if="currentTab === 'native_numbers'" class="nuri-entrance">
+      <!-- Explication banner -->
+      <div class="mb-6 rounded-2xl border border-[#d9ddf1] bg-white p-5 shadow-sm">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="native-badge">Coreano Nativo (고유어 수사)</span>
+          <span class="text-xs font-semibold text-[#5848c4]">Conteo de objetos, personas, horas y edad</span>
+        </div>
+        <p class="mt-3 text-xs leading-relaxed text-[#6c7393]">
+          Se usan comúnmente para contar <strong class="text-[#1e2338]">objetos</strong> (개), <strong class="text-[#1e2338]">personas</strong> (명), <strong class="text-[#1e2338]">horas</strong> (시) y <strong class="text-[#1e2338]">edad</strong> (살).
+        </p>
+
+        <!-- Rule Box -->
+        <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 text-xs text-[#92400e]">
+          <p class="font-bold flex items-center gap-1.5">
+            <Sparkles :size="14" /> Regla de Abreviación con Contadores:
+          </p>
+          <p class="mt-1 leading-5">
+            Cuando van seguidos de un sustantivo contador, los números <strong>1, 2, 3, 4 y 20</strong> cambian a su forma abreviada:
+          </p>
+          <div class="mt-2.5 grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-2 font-mono font-medium text-xs">
+            <div class="rounded-lg bg-white/90 p-2 border border-amber-200/60 text-center">
+              <span class="block text-[10px] text-gray-500">1: 하나 →</span>
+              <strong class="text-[#5848c4] text-sm">한</strong>
+            </div>
+            <div class="rounded-lg bg-white/90 p-2 border border-amber-200/60 text-center">
+              <span class="block text-[10px] text-gray-500">2: 둘 →</span>
+              <strong class="text-[#5848c4] text-sm">두</strong>
+            </div>
+            <div class="rounded-lg bg-white/90 p-2 border border-amber-200/60 text-center">
+              <span class="block text-[10px] text-gray-500">3: 셋 →</span>
+              <strong class="text-[#5848c4] text-sm">세</strong>
+            </div>
+            <div class="rounded-lg bg-white/90 p-2 border border-amber-200/60 text-center">
+              <span class="block text-[10px] text-gray-500">4: 넷 →</span>
+              <strong class="text-[#5848c4] text-sm">네</strong>
+            </div>
+            <div class="rounded-lg bg-white/90 p-2 border border-amber-200/60 text-center col-span-2 xs:col-span-1">
+              <span class="block text-[10px] text-gray-500">20: 스물 →</span>
+              <strong class="text-[#5848c4] text-sm">스무</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Numbers Grid -->
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+        <div
+          v-for="item in NATIVE_NUMBERS_FULL"
+          :key="item.value"
+          class="rounded-2xl border border-[#d9ddf1] bg-white p-4 shadow-sm hover:border-[#5848c4]/40 transition-all flex flex-col justify-between"
+        >
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="nuri-mono text-xs font-extrabold text-[#767d9c] bg-[#edf0f8] px-2 py-0.5 rounded-full">
+                {{ item.value }}
+              </span>
+              <button
+                type="button"
+                @click="playAudio(item.audioText)"
+                title="Escuchar número"
+                class="nuri-audio-btn nuri-audio-btn-sm"
+              >
+                <Volume2 :size="15" />
+              </button>
+            </div>
+
+            <div class="mt-3">
+              <div class="flex items-baseline gap-2">
+                <span class="text-2xl font-black text-[#1e2338] font-korean">{{ item.hangul }}</span>
+                <span v-if="item.shortForm" class="text-xs font-bold text-[#5848c4] bg-[#eeedff] px-1.5 py-0.5 rounded">
+                  forma corta: {{ item.shortForm }}
+                </span>
+              </div>
+              <p class="text-xs text-[#767d9c] font-mono mt-0.5">{{ item.pronunciation }}</p>
+              <p class="text-sm font-semibold text-[#1e2338] mt-1">{{ item.spanish }}</p>
+            </div>
+          </div>
+
+          <div v-if="item.tip" class="mt-3 pt-2.5 border-t border-[#f0f2f8] text-[11px] text-[#5848c4] font-medium">
+            💡 {{ item.tip }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: DÍAS DEL MES (일) 1~31 -->
+    <div v-else-if="currentTab === 'month_days'" class="nuri-entrance">
+      <!-- Explication banner -->
+      <div class="mb-6 rounded-2xl border border-[#d9ddf1] bg-white p-5 shadow-sm">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="sino-badge">Sino-Coreano + 일 (Día)</span>
+          <span class="text-xs font-semibold text-[#145e50]">Fechas y Días del Mes (1일 ~ 31일)</span>
+        </div>
+        <p class="mt-3 text-xs leading-relaxed text-[#6c7393]">
+          Para expresar los días del mes se utiliza el número en <strong class="text-[#1e2338]">Sino-Coreano</strong> seguido del contador <strong class="text-[#1e2338]">일 (il)</strong>.
+        </p>
+
+        <!-- Assimilation alerts -->
+        <div class="mt-4 rounded-xl border border-sky-200 bg-sky-50/80 p-3.5 text-xs text-sky-950">
+          <p class="font-bold flex items-center gap-1.5 text-sky-900">
+            <Sparkles :size="14" /> Reglas de Asimilación Fonética:
+          </p>
+          <ul class="mt-2 space-y-1 leading-5 text-[11px]">
+            <li>• <strong>16일 (십육일):</strong> La consonante final 'ㅂ' y la '유' se asimilan y se pronuncia <strong class="text-[#5848c4]">[심뉴길] (shim-nyu-gil)</strong>.</li>
+            <li>• <strong>26일 (이십육일):</strong> Se pronuncia de la misma forma asimilada <strong class="text-[#5848c4]">[이심뉴길] (i-shim-nyu-gil)</strong>.</li>
+            <li>• En general, la consonante final se une a la vocal de '일': por ejemplo, <strong>1일 (일일 → [이릴])</strong>, <strong>3일 (삼일 → [사밀])</strong>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Days Grid (31 days) -->
+      <div class="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
+        <div
+          v-for="item in MONTH_DAYS"
+          :key="item.day"
+          @click="playAudio(item.hangul)"
+          class="group cursor-pointer rounded-xl border border-[#d9ddf1] bg-white p-3 shadow-sm hover:border-[#5848c4] hover:shadow-md transition-all flex flex-col justify-between"
+          :title="`Toca para escuchar ${item.hangul}`"
+        >
+          <div class="flex items-center justify-between">
+            <span class="nuri-mono text-[11px] font-black text-[#5848c4] bg-[#eeedff] px-2 py-0.5 rounded-full">
+              {{ item.day }}일
+            </span>
+            <button
+              type="button"
+              @click.stop="playAudio(item.hangul)"
+              title="Escuchar pronunciación"
+              class="nuri-audio-btn nuri-audio-btn-sm opacity-70 group-hover:opacity-100"
+            >
+              <Volume2 :size="13" />
+            </button>
+          </div>
+
+          <div class="mt-2 text-center">
+            <p class="text-lg font-black text-[#1e2338] font-korean">{{ item.hangul }}</p>
+            <p class="text-[11px] font-mono text-[#767d9c] mt-0.5">{{ item.pronunciation }}</p>
+          </div>
+
+          <div v-if="item.note" class="mt-2 text-[9px] font-bold text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 text-center">
+            {{ item.note }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: TABLA SINO VS NATIVO -->
     <div v-else-if="currentTab === 'numbers'" class="nuri-entrance">
       <div class="mb-6 grid gap-4 sm:grid-cols-2">
         <!-- Card Sino Uses -->

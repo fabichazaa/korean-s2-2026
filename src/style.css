@@ -172,16 +172,16 @@ input {
   perspective: 1400px;
   position: relative;
   width: 100%;
-  max-width: 720px;
+  max-width: 680px;
   margin-left: auto;
   margin-right: auto;
-  min-height: 380px;
-  height: 420px;
+  min-height: 330px;
+  height: clamp(330px, 48vh, 395px);
 }
 
 @media (min-width: 640px) {
   .nuri-card-scene {
-    min-height: 430px;
+    min-height: 420px;
     height: 440px;
   }
 }
@@ -509,27 +509,33 @@ input {
 .transition-transform { transition-property: transform; transition-duration: 0.2s; }
 
 /* Custom Control Buttons in Flashcard */
-.nuri-btn-back {
+.nuri-btn-back,
+.nuri-btn-next {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 52px;
   border-radius: 16px;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   color: var(--muted-foreground);
-  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @media (min-width: 640px) {
-  .nuri-btn-back {
+  .nuri-btn-back,
+  .nuri-btn-next {
     min-height: 64px;
     border-radius: 18px;
   }
 }
-.nuri-btn-back:hover:not(:disabled) {
+.nuri-btn-back:hover:not(:disabled),
+.nuri-btn-next:hover {
   border-color: rgba(88, 72, 196, 0.4);
   background: #ffffff;
   color: var(--foreground);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
 }
 .nuri-btn-back:disabled {
   opacity: 0.4;

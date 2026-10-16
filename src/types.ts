@@ -8,7 +8,9 @@ export type WordCategory =
   | 'object'
   | 'verb'
   | 'adjective'
-  | 'counter';
+  | 'counter'
+  | 'calendar'
+  | 'weather';
 
 export interface VerbForms {
   present?: string;
