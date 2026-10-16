@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Volume2, Shuffle, ChevronLeft, ChevronRight, Check, BookOpen } from 'lucide-vue-next';
-import type { Word, WordCategory } from '../types';
+import { Volume2, Shuffle, ChevronLeft, ChevronRight, Check, BookOpen, Clock, Layers, Sparkles } from 'lucide-vue-next';
+import type { Word, WordCategory, StudyFilter } from '../types';
 import { CATEGORY_LABELS } from '../data/words';
 import { speakKorean } from '../utils/speech';
 import CompletionState from './CompletionState.vue';
@@ -8,6 +8,8 @@ import CompletionState from './CompletionState.vue';
 const props = defineProps<{
   activeWord: Word | null;
   knownCount: number;
+  unlearnedCount: number;
+  categoryTotalCount: number;
   progressPercent: number;
   queueLength: number;
   cardIndex: number;
@@ -17,6 +19,8 @@ const props = defineProps<{
   revealed: boolean;
   selectedCategory: WordCategory | 'all';
   categoryCounts: { category: WordCategory | 'all'; label: string; count: number }[];
+  studyFilter: StudyFilter;
+  isWordKnown: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -27,6 +31,8 @@ const emit = defineEmits<{
   (e: 'reset'): void;
   (e: 'open-browser'): void;
   (e: 'select-category', category: WordCategory | 'all'): void;
+  (e: 'update:studyFilter', filter: StudyFilter): void;
+  (e: 'toggle-word-known', wordId: string): void;
 }>();
 
 const handlePlayAudio = (text: string, event?: Event) => {
@@ -35,27 +41,72 @@ const handlePlayAudio = (text: string, event?: Event) => {
   }
   speakKorean(text);
 };
+
+const handleToggleKnownBadge = (event: Event) => {
+  event.stopPropagation();
+  if (props.activeWord) {
+    emit('toggle-word-known', props.activeWord.id);
+  }
+};
 </script>
 
 <template>
   <section class="study-container mx-auto max-w-[880px] pb-6 pt-2 sm:pt-6">
     <!-- Streamlined, Breathable Top Toolbar -->
     <div class="study-toolbar nuri-entrance">
-      <!-- Category chips and Shuffle toggle row -->
-      <div class="toolbar-chips-row">
-        <div class="category-scroll-list no-scrollbar">
+      <!-- Row 1: Category chips (horizontal scroll, full width) -->
+      <div class="category-scroll-list no-scrollbar">
+        <button
+          v-for="cat in categoryCounts"
+          :key="cat.category"
+          type="button"
+          @click="emit('select-category', cat.category)"
+          :class="['nuri-cat-chip', selectedCategory === cat.category ? 'is-active' : '']"
+        >
+          <span>{{ cat.label }}</span>
+          <span class="nuri-cat-badge">{{ cat.count }}</span>
+        </button>
+      </div>
+
+      <!-- Row 2: Secondary Controls Bar (Status Filter Toggle & Aleatorio Button) -->
+      <div class="toolbar-controls-row">
+        <!-- Segmented filter for word status: Por aprender / Todas / Aprendidas -->
+        <div class="study-filter-segmented" role="radiogroup" aria-label="Filtrar palabras por estado de aprendizaje">
           <button
-            v-for="cat in categoryCounts"
-            :key="cat.category"
             type="button"
-            @click="emit('select-category', cat.category)"
-            :class="['nuri-cat-chip', selectedCategory === cat.category ? 'is-active' : '']"
+            role="radio"
+            :aria-checked="studyFilter === 'unlearned'"
+            @click="emit('update:studyFilter', 'unlearned')"
+            :class="['filter-btn', studyFilter === 'unlearned' ? 'is-active' : '']"
+            title="Ver palabras que aún no has marcado como aprendidas"
           >
-            <span>{{ cat.label }}</span>
-            <span class="nuri-cat-badge">{{ cat.count }}</span>
+            <span>Por aprender</span>
+          </button>
+
+          <button
+            type="button"
+            role="radio"
+            :aria-checked="studyFilter === 'all'"
+            @click="emit('update:studyFilter', 'all')"
+            :class="['filter-btn', studyFilter === 'all' ? 'is-active' : '']"
+            title="Ver todas las palabras de esta categoría"
+          >
+            <span>Todas</span>
+          </button>
+
+          <button
+            type="button"
+            role="radio"
+            :aria-checked="studyFilter === 'learned'"
+            @click="emit('update:studyFilter', 'learned')"
+            :class="['filter-btn', studyFilter === 'learned' ? 'is-active' : '']"
+            title="Ver palabras que ya has marcado como aprendidas"
+          >
+            <span>Aprendidas</span>
           </button>
         </div>
 
+        <!-- Shuffle / Aleatorio Toggle Button -->
         <button
           type="button"
           @click="emit('toggle-random')"
@@ -68,12 +119,12 @@ const handlePlayAudio = (text: string, event?: Event) => {
         </button>
       </div>
 
-      <!-- Single, Modern Progress Indicator -->
+      <!-- Row 3: Single, Modern Progress Indicator -->
       <div class="study-progress-section">
         <div class="progress-meta">
           <span class="progress-title">
             <span class="dot-indicator" />
-            <span>Aprendidas: <strong class="text-[#1e2338]">{{ knownCount }}</strong> de {{ totalCount }}</span>
+            <span>Aprendidas: <strong class="text-[#1e2338]">{{ knownCount }}</strong> de {{ categoryTotalCount }}</span>
           </span>
           <span class="progress-percentage nuri-mono font-bold">{{ progressPercent }}%</span>
         </div>
@@ -86,13 +137,58 @@ const handlePlayAudio = (text: string, event?: Event) => {
       </div>
     </div>
 
-    <!-- Completion view or Active Flashcard -->
-    <CompletionState
-      v-if="!activeWord"
-      :total-words="totalCount"
-      @reset="emit('reset')"
-      @open-browser="emit('open-browser')"
-    />
+    <!-- Empty / Completion view or Active Flashcard -->
+    <template v-if="!activeWord">
+      <!-- Special empty state if user is filtering "Aprendidas" and has 0 learned words -->
+      <div
+        v-if="studyFilter === 'learned'"
+        class="nuri-entrance nuri-entrance-3 mt-5 sm:mt-7 overflow-hidden rounded-[22px] sm:rounded-[26px] border border-[#d9ddf1] bg-[#fbfcff] px-5 py-8 sm:px-12 sm:py-14 text-center shadow-[0_18px_45px_rgba(36,41,77,0.08)]"
+      >
+        <div class="mx-auto flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-[#fef3c7] text-[#92400e]">
+          <Sparkles :size="26" />
+        </div>
+
+        <p class="nuri-mono mt-4 sm:mt-6 text-[10px] uppercase tracking-[0.2em] text-[#5848c4]">
+          repaso de aprendidas
+        </p>
+
+        <h2 class="nuri-heading mt-2.5 text-2xl sm:text-4xl leading-tight text-[#24294d]">
+          Aún no hay palabras aprendidas
+        </h2>
+
+        <p class="mx-auto mt-3 sm:mt-4 max-w-[420px] text-xs sm:text-sm leading-5 sm:leading-6 text-[#69708f]">
+          En esta categoría todavía no has marcado palabras con "Lo sé". Cambia al modo <strong>Por aprender</strong> para empezar a estudiar y sumarlas aquí.
+        </p>
+
+        <div class="mt-6 sm:mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+          <button
+            type="button"
+            @click="emit('update:studyFilter', 'unlearned')"
+            class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#5848c4] px-5 py-3 text-sm font-semibold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-[#4839af] w-full sm:w-auto"
+          >
+            <Clock :size="16" />
+            <span>Ver palabras por aprender ({{ unlearnedCount }})</span>
+          </button>
+
+          <button
+            type="button"
+            @click="emit('update:studyFilter', 'all')"
+            class="inline-flex items-center justify-center gap-2 rounded-xl border border-[#d9ddf1] bg-white px-5 py-3 text-sm font-medium text-[#29244f] transition-colors hover:bg-[#eeedff] w-full sm:w-auto"
+          >
+            <Layers :size="16" />
+            <span>Ver todas ({{ categoryTotalCount }})</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Real session completion (finished unlearned or reset) -->
+      <CompletionState
+        v-else
+        :total-words="categoryTotalCount"
+        @reset="emit('reset')"
+        @open-browser="emit('open-browser')"
+      />
+    </template>
 
     <template v-else>
       <!-- FLASHCARD 3D SCENE -->
@@ -116,11 +212,31 @@ const handlePlayAudio = (text: string, event?: Event) => {
 
             <!-- Front Header -->
             <div class="flex items-center justify-between relative z-10">
-              <span class="category-badge">
-                {{ CATEGORY_LABELS[activeWord.category] }}
-              </span>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="category-badge">
+                  {{ CATEGORY_LABELS[activeWord.category] }}
+                </span>
 
-              <div class="flex items-center gap-3">
+                <!-- Status indicator badge -->
+                <span
+                  v-if="isWordKnown"
+                  class="known-status-badge"
+                  title="Palabra ya aprendida"
+                  @click="handleToggleKnownBadge"
+                >
+                  <Check :size="11" :stroke-width="3" />
+                  <span>Aprendida</span>
+                </span>
+                <span
+                  v-else-if="studyFilter === 'all'"
+                  class="pending-status-badge"
+                  title="Palabra por aprender"
+                >
+                  <span>Por aprender</span>
+                </span>
+              </div>
+
+              <div class="flex items-center gap-3 shrink-0">
                 <button
                   type="button"
                   @click="handlePlayAudio(activeWord.korean, $event)"
@@ -160,11 +276,23 @@ const handlePlayAudio = (text: string, event?: Event) => {
 
             <!-- Back Header -->
             <div class="flex items-center justify-between relative z-10">
-              <span class="meaning-badge">
-                significado
-              </span>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="meaning-badge">
+                  significado
+                </span>
 
-              <div class="flex items-center gap-3">
+                <span
+                  v-if="isWordKnown"
+                  class="known-status-badge is-dark"
+                  title="Palabra ya aprendida"
+                  @click="handleToggleKnownBadge"
+                >
+                  <Check :size="11" :stroke-width="3" />
+                  <span>Aprendida</span>
+                </span>
+              </div>
+
+              <div class="flex items-center gap-3 shrink-0">
                 <button
                   type="button"
                   @click="handlePlayAudio(activeWord.verbForms?.present || activeWord.korean, $event)"
@@ -304,13 +432,13 @@ const handlePlayAudio = (text: string, event?: Event) => {
         <button
           type="button"
           @click="emit('decision', 'known')"
-          title="Marcar como conocida"
-          aria-label="Marcar como conocida"
+          :title="isWordKnown ? 'Palabra dominada (avanzar)' : 'Marcar como conocida'"
+          :aria-label="isWordKnown ? 'Palabra dominada' : 'Marcar como conocida'"
           data-testid="button-mark-known"
-          class="nuri-btn-known"
+          :class="['nuri-btn-known', isWordKnown ? 'is-already-known' : '']"
         >
           <Check :size="18" :stroke-width="2.6" />
-          <span>Lo sé</span>
+          <span>{{ isWordKnown ? 'Dominada' : 'Lo sé' }}</span>
         </button>
 
         <button
@@ -335,13 +463,9 @@ const handlePlayAudio = (text: string, event?: Event) => {
 
 .study-toolbar {
   margin-bottom: 0.25rem;
-}
-
-.toolbar-chips-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .category-scroll-list {
@@ -349,8 +473,112 @@ const handlePlayAudio = (text: string, event?: Event) => {
   gap: 0.375rem;
   overflow-x: auto;
   padding: 0.25rem 0;
+  width: 100%;
+}
+
+.toolbar-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.375rem;
+  width: 100%;
+}
+
+.study-filter-segmented {
+  display: flex;
+  align-items: center;
+  background: rgba(235, 238, 246, 0.95);
+  border: 1px solid rgba(218, 222, 238, 0.85);
+  border-radius: 9999px;
+  padding: 2.5px;
   flex: 1;
   min-width: 0;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  padding: 0.38rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  user-select: none;
+  cursor: pointer;
+}
+
+@media (min-width: 640px) {
+  .toolbar-controls-row {
+    gap: 0.5rem;
+  }
+  .study-filter-segmented {
+    flex: initial;
+    min-width: 320px;
+    padding: 3px;
+  }
+  .filter-btn {
+    padding: 0.42rem 1.1rem;
+    font-size: 0.8125rem;
+  }
+  .random-toggle-btn {
+    padding: 0.42rem 0.9rem;
+    font-size: 0.8125rem;
+  }
+}
+
+.filter-btn:hover {
+  color: var(--foreground);
+}
+
+.filter-btn.is-active {
+  background: #ffffff;
+  color: var(--primary);
+  box-shadow: 0 2px 8px rgba(30, 35, 56, 0.09);
+  font-weight: 700;
+}
+
+.random-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--muted-foreground);
+  padding: 0.36rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .random-toggle-btn {
+    padding: 0.42rem 0.9rem;
+    font-size: 0.8125rem;
+  }
+}
+
+.random-toggle-btn:hover {
+  background: #ffffff;
+  color: var(--foreground);
+  border-color: rgba(88, 72, 196, 0.4);
+}
+
+.random-toggle-btn.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 4px 12px var(--primary-glow);
 }
 
 .study-progress-section {
@@ -358,7 +586,7 @@ const handlePlayAudio = (text: string, event?: Event) => {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 0.45rem 0.85rem;
-  margin-top: 0.4rem;
+  margin-top: 0.15rem;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
 }
 
@@ -390,32 +618,6 @@ const handlePlayAudio = (text: string, event?: Event) => {
   font-size: 0.8125rem;
 }
 
-.random-toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  border-radius: 9999px;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--muted-foreground);
-  padding: 0.35rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-.random-toggle-btn:hover {
-  background: #ffffff;
-  color: var(--foreground);
-  border-color: rgba(88, 72, 196, 0.4);
-}
-.random-toggle-btn.is-active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #ffffff;
-  box-shadow: 0 4px 12px var(--primary-glow);
-}
-
 .progress-track {
   height: 6px;
   background: #edf0f8;
@@ -429,6 +631,60 @@ const handlePlayAudio = (text: string, event?: Event) => {
   background: var(--primary);
   transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+.known-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  background: #d9f4ee;
+  color: #145e50;
+  border: 1px solid rgba(20, 94, 80, 0.18);
+  padding: 0.25rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.known-status-badge:hover {
+  filter: brightness(0.97);
+}
+.known-status-badge.is-dark {
+  background: rgba(217, 244, 238, 0.18);
+  color: #a7f3d0;
+  border-color: rgba(167, 243, 208, 0.3);
+}
+
+.pending-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  background: #f1f3f9;
+  color: #6c7393;
+  border: 1px solid #e0e4f2;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.nuri-btn-known.is-already-known {
+  background: #1e705b;
+}
+
+@media (max-width: 380px) {
+  .filter-btn {
+    font-size: 0.7rem;
+    padding: 0.34rem 0.35rem;
+  }
+  .random-toggle-btn {
+    padding: 0.34rem 0.55rem;
+    font-size: 0.72rem;
+  }
+}
+
 
 /* Card Elements */
 .card-glow-circle {

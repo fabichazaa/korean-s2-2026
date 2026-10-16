@@ -34,3 +34,5 @@ export interface SavedProgress {
   reviewCounts?: Record<string, number>;
 }
 
+export type StudyFilter = 'unlearned' | 'all' | 'learned';
+

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import type { Word, WordCategory, SavedProgress } from './types';
+import type { Word, WordCategory, SavedProgress, StudyFilter } from './types';
 import { WORDS, STORAGE_KEY, shuffleWords, CATEGORY_ORDER, CATEGORY_TITLES } from './data/words';
 import Header, { type AppTab } from './components/Header.vue';
 import StudyView from './components/StudyView.vue';
@@ -18,6 +18,7 @@ const cursor = ref(0);
 const revealed = ref(false);
 const activeTab = ref<AppTab>('study');
 const selectedCategory = ref<WordCategory | 'all'>('all');
+const studyFilter = ref<StudyFilter>('unlearned');
 const search = ref('');
 const randomMode = ref(false);
 const randomOrder = ref<string[]>([]);
@@ -192,7 +193,13 @@ const categoryWords = computed(() => {
 });
 
 const orderedQueue = computed(() => {
-  return categoryWords.value.filter((word) => !knownIds.value.includes(word.id));
+  if (studyFilter.value === 'unlearned') {
+    return categoryWords.value.filter((word) => !knownIds.value.includes(word.id));
+  }
+  if (studyFilter.value === 'learned') {
+    return categoryWords.value.filter((word) => knownIds.value.includes(word.id));
+  }
+  return categoryWords.value;
 });
 
 const queue = computed(() => {
@@ -220,6 +227,10 @@ const cardIndex = computed(() => {
 
 const knownCount = computed(() => {
   return categoryWords.value.filter((w) => knownIds.value.includes(w.id)).length;
+});
+
+const unlearnedCount = computed(() => {
+  return Math.max(0, categoryWords.value.length - knownCount.value);
 });
 
 const overallKnownCount = computed(() => knownIds.value.length);
@@ -253,7 +264,13 @@ const handleDecision = (decision: 'known' | 'review') => {
     if (!knownIds.value.includes(currentWord.id)) {
       knownIds.value = [...knownIds.value, currentWord.id];
     }
-    cursor.value = Math.min(cursor.value, Math.max(0, queue.value.length - 2));
+    if (studyFilter.value === 'unlearned') {
+      cursor.value = Math.min(cursor.value, Math.max(0, queue.value.length - 2));
+    } else {
+      if (queue.value.length > 1) {
+        cursor.value = (cursor.value + 1) % queue.value.length;
+      }
+    }
   } else {
     reviewCounts.value = {
       ...reviewCounts.value,
@@ -274,6 +291,13 @@ const toggleKnownInTable = (wordId: string) => {
   }
 };
 
+const toggleKnownWord = (wordId: string) => {
+  toggleKnownInTable(wordId);
+  if (studyFilter.value !== 'all') {
+    cursor.value = Math.min(cursor.value, Math.max(0, queue.value.length - 2));
+  }
+};
+
 const resetProgress = () => {
   knownIds.value = [];
   reviewCounts.value = {};
@@ -285,6 +309,15 @@ const resetProgress = () => {
 
 const handleCategoryChange = (category: WordCategory | 'all') => {
   selectedCategory.value = category;
+  cursor.value = 0;
+  revealed.value = false;
+  if (randomMode.value) {
+    randomOrder.value = shuffleWords(orderedQueue.value).map((w) => w.id);
+  }
+};
+
+const handleStudyFilterChange = (filter: StudyFilter) => {
+  studyFilter.value = filter;
   cursor.value = 0;
   revealed.value = false;
   if (randomMode.value) {
@@ -358,15 +391,19 @@ const onKeyDown = (event: KeyboardEvent) => {
           v-if="activeTab === 'study'"
           :active-word="activeWord"
           :known-count="knownCount"
+          :unlearned-count="unlearnedCount"
+          :category-total-count="categoryWords.length"
           :progress-percent="progressPercent"
           :queue-length="queue.length"
           :card-index="cardIndex"
-          :total-count="categoryWords.length"
+          :total-count="queue.length"
           :can-go-back="cursor > 0"
           :random-mode="randomMode"
           :revealed="revealed"
           :selected-category="selectedCategory"
           :category-counts="categoryCounts"
+          :study-filter="studyFilter"
+          :is-word-known="activeWord ? knownIds.includes(activeWord.id) : false"
           @toggle-reveal="revealed = !revealed"
           @toggle-random="toggleRandomMode"
           @go-back="goBack"
@@ -374,6 +411,8 @@ const onKeyDown = (event: KeyboardEvent) => {
           @reset="resetProgress"
           @open-browser="activeTab = 'vocabulary'"
           @select-category="handleCategoryChange"
+          @update:study-filter="handleStudyFilterChange"
+          @toggle-word-known="toggleKnownWord"
         />
 
         <!-- Time & Numbers Interactive Trainer -->
