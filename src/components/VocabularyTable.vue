@@ -37,7 +37,7 @@ const playAudio = (text: string, e: Event) => {
     </div>
 
     <div class="table-card overflow-hidden">
-      <!-- Table Header -->
+      <!-- Table Header (desktop only) -->
       <div
         :class="[
           'table-header-grid px-4 py-3 sm:px-6',
@@ -57,12 +57,12 @@ const playAudio = (text: string, e: Event) => {
           :key="word.id"
           :data-testid="`row-vocabulary-${word.id}`"
           :class="[
-            'table-row-grid items-center px-4 py-3.5 sm:px-6',
+            'table-row-grid items-center px-4 py-3 sm:px-6',
             hasPresentColumn ? 'has-present' : 'no-present'
           ]"
         >
           <!-- Korean Word with Audio Button -->
-          <div class="flex items-center gap-2.5 min-w-0">
+          <div class="col-korean flex items-center gap-2 min-w-0 sm:gap-2.5">
             <button
               type="button"
               @click="playAudio(word.korean, $event)"
@@ -74,7 +74,7 @@ const playAudio = (text: string, e: Event) => {
             </button>
             <div class="min-w-0">
               <p
-                class="nuri-display truncate text-[20px] font-bold leading-tight text-[#1e2338]"
+                class="nuri-display text-[19px] sm:text-[20px] font-bold leading-tight text-[#1e2338] sm:truncate"
                 :data-testid="`text-word-korean-${word.id}`"
               >
                 {{ word.korean }}
@@ -83,20 +83,21 @@ const playAudio = (text: string, e: Event) => {
           </div>
 
           <!-- Spanish translation & note -->
-          <div class="min-w-0 pr-2">
+          <div class="col-spanish min-w-0 pr-1 sm:pr-2">
             <p
-              class="truncate text-sm text-[#1e2338] font-medium"
+              class="text-sm text-[#1e2338] font-medium sm:truncate"
               :data-testid="`text-word-spanish-${word.id}`"
             >
               {{ word.spanish }}
             </p>
-            <p v-if="word.note" class="truncate text-[11px] text-[#6c7393] mt-0.5">
+            <p v-if="word.note" class="text-[11px] text-[#6c7393] mt-0.5 sm:truncate">
               {{ word.note }}
             </p>
           </div>
 
           <!-- Present simple if verb or adjective -->
-          <div v-if="hasPresentColumn" class="flex items-center gap-2 min-w-0">
+          <div v-if="hasPresentColumn" class="col-present flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span class="nuri-mono text-[10px] text-[#767d9c] sm:hidden">Presente:</span>
             <button
               v-if="word.present"
               type="button"
@@ -108,12 +109,12 @@ const playAudio = (text: string, e: Event) => {
               <Volume2 :size="13" />
             </button>
             <p class="truncate text-sm text-[#5848c4] font-semibold">
-              {{ word.present }}
+              {{ word.present || '—' }}
             </p>
           </div>
 
           <!-- Status badge with toggle click -->
-          <div class="flex min-w-[70px] flex-col items-end gap-1">
+          <div class="col-status flex min-w-[70px] flex-col items-end gap-1">
             <button
               type="button"
               @click="emit('toggle-known', word.id)"
@@ -171,15 +172,21 @@ const playAudio = (text: string, e: Event) => {
 }
 
 .table-header-grid {
-  display: grid;
-  align-items: center;
-  border-bottom: 1px solid var(--border);
-  background: #edf0f8;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #6c7393;
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .table-header-grid {
+    display: grid;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    background: #edf0f8;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6c7393;
+  }
 }
 
 .table-row-grid {
@@ -191,22 +198,48 @@ const playAudio = (text: string, e: Event) => {
   background: #f7f8fc;
 }
 
-.has-present {
-  grid-template-columns: 1.2fr 1fr 1fr 80px;
-}
-
-.no-present {
-  grid-template-columns: 1.2fr 1.6fr 80px;
-}
-
-@media (max-width: 640px) {
-  .has-present {
-    grid-template-columns: 1fr 1fr 0.9fr 70px;
-    gap: 0.5rem;
+/* Mobile responsive card-grid */
+@media (max-width: 639px) {
+  .table-row-grid {
+    padding: 0.8rem 0.95rem;
+    row-gap: 0.35rem;
+    column-gap: 0.5rem;
   }
+  .table-row-grid.has-present {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "korean status"
+      "spanish spanish"
+      "present present";
+  }
+  .table-row-grid.no-present {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "korean status"
+      "spanish spanish";
+  }
+
+  .col-korean { grid-area: korean; }
+  .col-status { grid-area: status; }
+  .col-spanish { grid-area: spanish; }
+  .col-present {
+    grid-area: present;
+    margin-top: 0.15rem;
+    padding-top: 0.35rem;
+    border-top: 1px dashed rgba(224, 228, 242, 0.7);
+  }
+}
+
+/* Desktop multi-column grid */
+@media (min-width: 640px) {
+  .has-present {
+    grid-template-columns: 1.2fr 1fr 1fr 80px;
+    grid-template-areas: none;
+  }
+
   .no-present {
-    grid-template-columns: 1.1fr 1.4fr 70px;
-    gap: 0.5rem;
+    grid-template-columns: 1.2fr 1.6fr 80px;
+    grid-template-areas: none;
   }
 }
 

@@ -30,7 +30,7 @@ const groupedWords = computed(() => {
 <template>
   <section class="vocab-container mx-auto max-w-[880px] pb-12 pt-5 md:pt-10">
     <!-- Header -->
-    <div class="nuri-entrance flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+    <div class="nuri-entrance flex flex-col justify-between gap-4 sm:gap-6 sm:flex-row sm:items-end">
       <div>
         <p class="nuri-mono text-[10px] uppercase font-bold text-[#5848c4]">
           Tu cuaderno · {{ totalCount }} palabras
@@ -38,7 +38,7 @@ const groupedWords = computed(() => {
         <h1 class="page-title mt-2 text-[#1e2338]">
           Mis palabras<span class="text-[#5848c4]">.</span>
         </h1>
-        <p class="mt-3 max-w-[480px] text-xs sm:text-sm leading-6 text-[#6c7393]">
+        <p class="mt-2 max-w-[480px] text-xs sm:text-sm leading-5 sm:leading-6 text-[#6c7393]">
           Una vista organizada para reconocer patrones, repasar lo difícil y consultar todas tus palabras.
         </p>
       </div>
@@ -47,7 +47,7 @@ const groupedWords = computed(() => {
         type="button"
         @click="emit('close')"
         data-testid="button-back-to-study"
-        class="back-study-btn flex items-center gap-2"
+        class="back-study-btn flex items-center justify-center gap-2 w-full sm:w-auto"
       >
         <Target :size="15" />
         <span>Volver a estudiar</span>
@@ -55,7 +55,7 @@ const groupedWords = computed(() => {
     </div>
 
     <!-- Search Input -->
-    <div class="nuri-entrance nuri-entrance-2 relative mt-8">
+    <div class="nuri-entrance nuri-entrance-2 relative mt-6 sm:mt-8">
       <Search
         class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#767d9c]"
         :size="18"

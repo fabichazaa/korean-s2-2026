@@ -249,7 +249,7 @@ const onKeyDown = (event: KeyboardEvent) => {
       />
 
       <!-- Main Content Area -->
-      <main class="w-full min-w-0 px-4 pb-12 sm:px-8 md:px-12 lg:px-16">
+      <main class="w-full min-w-0 px-3 pb-10 sm:px-8 md:px-12 lg:px-16 sm:pb-12">
         <!-- Study Mode View (Flashcards) -->
         <StudyView
           v-if="activeTab === 'study'"

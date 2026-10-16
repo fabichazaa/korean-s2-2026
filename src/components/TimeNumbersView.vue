@@ -69,11 +69,11 @@ const playAudio = (text: string, e?: Event) => {
       </div>
 
       <!-- Navigation Tabs -->
-      <div class="mt-6 flex flex-wrap gap-2 border-b border-[#e0e4f2] pb-3">
+      <div class="mt-6 flex overflow-x-auto no-scrollbar gap-2 border-b border-[#e0e4f2] pb-3 -mx-3 px-3 sm:mx-0 sm:px-0 sm:flex-wrap">
         <button
           type="button"
           @click="currentTab = 'clock'"
-          :class="['sub-tab-btn flex items-center gap-2', currentTab === 'clock' ? 'is-active' : '']"
+          :class="['sub-tab-btn flex items-center gap-2 shrink-0', currentTab === 'clock' ? 'is-active' : '']"
         >
           <Clock :size="15" />
           <span>¿Qué hora es? (Reloj)</span>
@@ -82,7 +82,7 @@ const playAudio = (text: string, e?: Event) => {
         <button
           type="button"
           @click="currentTab = 'numbers'"
-          :class="['sub-tab-btn flex items-center gap-2', currentTab === 'numbers' ? 'is-active' : '']"
+          :class="['sub-tab-btn flex items-center gap-2 shrink-0', currentTab === 'numbers' ? 'is-active' : '']"
         >
           <Hash :size="15" />
           <span>Sino vs Nativo (1-12)</span>
@@ -91,7 +91,7 @@ const playAudio = (text: string, e?: Event) => {
         <button
           type="button"
           @click="currentTab = 'days'"
-          :class="['sub-tab-btn flex items-center gap-2', currentTab === 'days' ? 'is-active' : '']"
+          :class="['sub-tab-btn flex items-center gap-2 shrink-0', currentTab === 'days' ? 'is-active' : '']"
         >
           <Calendar :size="15" />
           <span>Días de la semana</span>
@@ -100,7 +100,7 @@ const playAudio = (text: string, e?: Event) => {
         <button
           type="button"
           @click="currentTab = 'grammar'"
-          :class="['sub-tab-btn flex items-center gap-2', currentTab === 'grammar' ? 'is-active' : '']"
+          :class="['sub-tab-btn flex items-center gap-2 shrink-0', currentTab === 'grammar' ? 'is-active' : '']"
         >
           <HelpCircle :size="15" />
           <span>Preguntas clave (누구, 어디...)</span>
@@ -110,11 +110,11 @@ const playAudio = (text: string, e?: Event) => {
 
     <!-- TAB 1: RELOJ INTERACTIVO -->
     <div v-if="currentTab === 'clock'" class="nuri-entrance">
-      <div class="clock-card-box p-6 sm:p-10">
+      <div class="clock-card-box p-4 sm:p-8 md:p-10">
         <!-- Badge Rule Reminder -->
-        <div class="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-[#e0e4f2] pb-5">
-          <div class="flex items-center gap-2">
-            <span class="golden-rule-badge flex items-center gap-1">
+        <div class="mb-5 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#e0e4f2] pb-4 sm:pb-5">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="golden-rule-badge flex items-center gap-1 shrink-0">
               <Sparkles :size="12" /> Regla de oro
             </span>
             <span class="text-xs font-medium text-[#6c7393]">
@@ -141,11 +141,11 @@ const playAudio = (text: string, e?: Event) => {
         </div>
 
         <!-- Clock Display Card -->
-        <div class="flex flex-col items-center justify-center py-6 text-center">
+        <div class="flex flex-col items-center justify-center py-4 sm:py-6 text-center">
           <p class="nuri-mono text-[11px] uppercase tracking-wider text-[#6c7393]">¿Cómo se dice en coreano?</p>
           
           <!-- Big Digital Clock -->
-          <div class="my-5 digital-clock-display flex items-baseline">
+          <div class="my-4 sm:my-5 digital-clock-display flex items-baseline">
             <span class="nuri-mono clock-digits">
               {{ String(hour).padStart(2, '0') }}:{{ String(minute).padStart(2, '0') }}
             </span>
@@ -164,7 +164,7 @@ const playAudio = (text: string, e?: Event) => {
             <p class="mt-3 text-xs text-[#6c7393]">Intenta decirlo en voz alta antes de revelar</p>
           </div>
 
-          <div v-else class="revealed-box w-full max-w-[620px] p-6 sm:p-8">
+          <div v-else class="revealed-box w-full max-w-[620px] p-4 sm:p-6 md:p-8">
             <div class="flex items-center justify-between">
               <span class="nuri-mono answer-tag">
                 Respuesta
@@ -179,17 +179,17 @@ const playAudio = (text: string, e?: Event) => {
               </button>
             </div>
 
-            <div class="my-6">
+            <div class="my-5 sm:my-6">
               <p class="nuri-display time-korean-text">
                 {{ timeData.koreanText }}
               </p>
-              <p class="mt-3 text-sm text-[#aaa6d1]">
+              <p class="mt-2.5 sm:mt-3 text-sm text-[#aaa6d1]">
                 {{ timeData.spanishText }}
               </p>
             </div>
 
             <!-- Breakdown -->
-            <div class="grid grid-cols-2 gap-3 border-t border-[#b9b4ff]/20 pt-5 text-left text-xs">
+            <div class="grid grid-cols-1 xs:grid-cols-2 gap-2 sm:gap-3 border-t border-[#b9b4ff]/20 pt-4 sm:pt-5 text-left text-xs">
               <div class="breakdown-card">
                 <p class="nuri-mono text-[9px] uppercase tracking-wider text-[#aaa6d1]">Hora (Coreano Nativo)</p>
                 <p class="mt-1 text-base font-bold text-[#b9b4ff]">{{ timeData.hourPart }}</p>
@@ -200,7 +200,7 @@ const playAudio = (text: string, e?: Event) => {
               </div>
             </div>
 
-            <div class="mt-6 flex justify-center gap-3">
+            <div class="mt-5 sm:mt-6 flex justify-center gap-3">
               <button
                 type="button"
                 @click="randomizeTime"
@@ -213,7 +213,7 @@ const playAudio = (text: string, e?: Event) => {
         </div>
 
         <!-- Quick Time Stepper Controls -->
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-4 border-t border-[#e0e4f2] pt-6 text-xs text-[#6c7393]">
+        <div class="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4 border-t border-[#e0e4f2] pt-5 sm:pt-6 text-xs text-[#6c7393]">
           <span class="font-medium">Ajustar manualmente:</span>
           <div class="flex items-center gap-1.5">
             <button
@@ -298,7 +298,7 @@ const playAudio = (text: string, e?: Event) => {
 
       <!-- Comparative Table 1-12 -->
       <div class="table-container">
-        <div class="table-header-row px-4 py-3 sm:px-6">
+        <div class="table-header-row px-2.5 py-2.5 sm:px-6 sm:py-3">
           <span>N°</span>
           <span>Sino-Coreano</span>
           <span>Coreano Nativo (Horas)</span>
@@ -308,12 +308,12 @@ const playAudio = (text: string, e?: Event) => {
           <div
             v-for="item in BASIC_NUMBERS"
             :key="item.value"
-            class="table-data-row px-4 py-3 sm:px-6"
+            class="table-data-row px-2.5 py-2.5 sm:px-6 sm:py-3"
           >
             <span class="nuri-mono text-sm font-bold text-[#6c7393]">{{ item.value }}</span>
 
             <!-- Sino Column -->
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <button
                 type="button"
                 @click="playAudio(item.sino)"
@@ -322,14 +322,14 @@ const playAudio = (text: string, e?: Event) => {
               >
                 <Volume2 :size="13" />
               </button>
-              <div>
-                <p class="text-base font-bold text-[#1e2338]">{{ item.sino }}</p>
+              <div class="min-w-0">
+                <p class="text-base font-bold text-[#1e2338] leading-tight">{{ item.sino }}</p>
                 <p class="nuri-mono text-[10px] text-[#6c7393]">{{ item.sinoPron }}</p>
               </div>
             </div>
 
             <!-- Native Column -->
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <button
                 type="button"
                 @click="playAudio(item.nativeShort ? `${item.nativeShort} 시` : item.native)"
@@ -338,11 +338,11 @@ const playAudio = (text: string, e?: Event) => {
               >
                 <Volume2 :size="13" />
               </button>
-              <div>
-                <p class="text-base font-bold text-[#5848c4]">
+              <div class="min-w-0">
+                <p class="text-base font-bold text-[#5848c4] leading-tight">
                   {{ item.native }}
-                  <span v-if="item.nativeShort && item.nativeShort !== item.native" class="text-xs text-[#1e2338] font-normal">
-                    ( $\rightarrow$ {{ item.nativeShort }})
+                  <span v-if="item.nativeShort && item.nativeShort !== item.native" class="text-xs text-[#1e2338] font-normal block sm:inline">
+                    (→ {{ item.nativeShort }})
                   </span>
                 </p>
                 <p class="nuri-mono text-[10px] text-[#6c7393]">{{ item.nativePron }}</p>
@@ -536,15 +536,22 @@ const playAudio = (text: string, e?: Event) => {
 }
 
 .digital-clock-display {
-  border-radius: 24px;
+  border-radius: 20px;
   border: 1px solid var(--border);
   background: #ffffff;
-  padding: 1.25rem 2.25rem;
+  padding: 0.875rem 1.5rem;
   box-shadow: var(--shadow-sm);
 }
 
+@media (min-width: 640px) {
+  .digital-clock-display {
+    border-radius: 24px;
+    padding: 1.25rem 2.25rem;
+  }
+}
+
 .clock-digits {
-  font-size: clamp(3.2rem, 9vw, 5.8rem);
+  font-size: clamp(2.6rem, 8vw, 5.5rem);
   font-weight: 800;
   line-height: 1;
   color: #1e2338;
@@ -554,22 +561,33 @@ const playAudio = (text: string, e?: Event) => {
   border-radius: 16px;
   background: var(--primary);
   color: #ffffff;
-  padding: 0.875rem 2rem;
-  font-size: 0.9375rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
   font-weight: 700;
   box-shadow: 0 10px 24px var(--primary-glow);
   transition: transform 0.2s ease;
+}
+@media (min-width: 640px) {
+  .reveal-time-btn {
+    padding: 0.875rem 2rem;
+    font-size: 0.9375rem;
+  }
 }
 .reveal-time-btn:hover {
   transform: scale(1.02);
 }
 
 .revealed-box {
-  border-radius: 24px;
+  border-radius: 22px;
   border: 1px solid #35305e;
   background: var(--card-back-bg);
   color: #ffffff;
   box-shadow: var(--shadow-card-dark);
+}
+@media (min-width: 640px) {
+  .revealed-box {
+    border-radius: 24px;
+  }
 }
 
 .answer-tag {
@@ -583,9 +601,10 @@ const playAudio = (text: string, e?: Event) => {
 }
 
 .time-korean-text {
-  font-size: clamp(2.4rem, 6.5vw, 4.2rem);
-  line-height: 1.05;
+  font-size: clamp(1.8rem, 5.5vw, 4rem);
+  line-height: 1.1;
   color: #f8f8ff;
+  word-break: keep-all;
 }
 
 .breakdown-card {
@@ -651,30 +670,50 @@ const playAudio = (text: string, e?: Event) => {
 }
 
 .table-container {
-  border-radius: 22px;
+  border-radius: 20px;
   border: 1px solid var(--border);
   background: #ffffff;
   box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
+@media (min-width: 640px) {
+  .table-container {
+    border-radius: 22px;
+  }
+}
 
 .table-header-row {
   display: grid;
-  grid-template-columns: 50px 1fr 1fr;
+  grid-template-columns: 34px 1fr 1fr;
+  gap: 0.25rem;
   border-bottom: 1px solid var(--border);
   background: #edf0f8;
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted-foreground);
 }
+@media (min-width: 640px) {
+  .table-header-row {
+    grid-template-columns: 50px 1fr 1fr;
+    gap: 0;
+    font-size: 0.6875rem;
+  }
+}
 
 .table-data-row {
   display: grid;
-  grid-template-columns: 50px 1fr 1fr;
+  grid-template-columns: 34px 1fr 1fr;
+  gap: 0.25rem;
   align-items: center;
   transition: background 0.15s ease;
+}
+@media (min-width: 640px) {
+  .table-data-row {
+    grid-template-columns: 50px 1fr 1fr;
+    gap: 0;
+  }
 }
 .table-data-row:hover {
   background: #f7f8fc;

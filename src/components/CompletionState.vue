@@ -27,29 +27,29 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="nuri-entrance nuri-entrance-3 completion-box mt-7 overflow-hidden rounded-[26px] border border-[#d9ddf1] bg-[#fbfcff] px-7 py-12 text-center shadow-[0_18px_45px_rgba(36,41,77,0.08)] sm:px-12 sm:py-16">
-    <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#d9f4ee] text-[#237a69]">
-      <Check :size="28" :stroke-width="2.4" />
+  <div class="nuri-entrance nuri-entrance-3 completion-box mt-5 sm:mt-7 overflow-hidden rounded-[22px] sm:rounded-[26px] border border-[#d9ddf1] bg-[#fbfcff] px-5 py-8 sm:px-12 sm:py-16 text-center shadow-[0_18px_45px_rgba(36,41,77,0.08)]">
+    <div class="mx-auto flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-[#d9f4ee] text-[#237a69]">
+      <Check :size="26" :stroke-width="2.4" />
     </div>
 
-    <p class="nuri-mono mt-7 text-[10px] uppercase tracking-[0.2em] text-[#5848c4]">
+    <p class="nuri-mono mt-5 sm:mt-7 text-[10px] uppercase tracking-[0.2em] text-[#5848c4]">
       잘했어요 · muy bien
     </p>
 
-    <h2 class="nuri-heading mt-3 text-5xl leading-none text-[#24294d] sm:text-6xl">
+    <h2 class="nuri-heading mt-3 text-3xl sm:text-5xl lg:text-6xl leading-none text-[#24294d]">
       Todo visto.
     </h2>
 
-    <p class="mx-auto mt-5 max-w-[380px] text-sm leading-6 text-[#69708f]">
+    <p class="mx-auto mt-4 sm:mt-5 max-w-[380px] text-xs sm:text-sm leading-5 sm:leading-6 text-[#69708f]">
       Has pasado por las {{ totalWords }} palabras de esta sesión. Déjalas reposar o vuelve a empezar con ojos nuevos.
     </p>
 
-    <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+    <div class="mt-7 sm:mt-8 flex flex-col justify-center gap-3 sm:flex-row">
       <button
         type="button"
         @click="emit('reset')"
         data-testid="button-reset-progress"
-        class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#29244f] px-5 py-3 text-sm font-semibold text-[#f8f8ff] shadow-md transition-all hover:-translate-y-0.5 hover:bg-[#383266]"
+        class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#29244f] px-5 py-3 text-sm font-semibold text-[#f8f8ff] shadow-md transition-all hover:-translate-y-0.5 hover:bg-[#383266] w-full sm:w-auto"
       >
         <RotateCcw :size="16" />
         <span>Repetir sesión</span>
@@ -59,7 +59,7 @@ onMounted(() => {
         type="button"
         @click="emit('open-browser')"
         data-testid="button-open-browser-complete"
-        class="inline-flex items-center justify-center gap-2 rounded-xl border border-[#d9ddf1] bg-white px-5 py-3 text-sm font-medium text-[#29244f] transition-colors hover:bg-[#eeedff]"
+        class="inline-flex items-center justify-center gap-2 rounded-xl border border-[#d9ddf1] bg-white px-5 py-3 text-sm font-medium text-[#29244f] transition-colors hover:bg-[#eeedff] w-full sm:w-auto"
       >
         <span>Ver mis palabras</span>
         <ChevronRight :size="16" />

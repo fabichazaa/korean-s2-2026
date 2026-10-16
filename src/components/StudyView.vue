@@ -50,7 +50,7 @@ const handlePlayAudio = (text: string, event?: Event) => {
         </h1>
       </div>
 
-      <div class="flex flex-wrap items-center justify-end gap-3 sm:pb-1">
+      <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2.5 sm:gap-3 w-full sm:w-auto sm:pb-1">
         <button
           type="button"
           @click="emit('toggle-random')"
@@ -81,7 +81,7 @@ const handlePlayAudio = (text: string, event?: Event) => {
         <Layers :size="13" />
         <span>Filtrar por categoría:</span>
       </div>
-      <div class="category-scroll-list no-scrollbar flex gap-2 overflow-x-auto pb-2 pt-1">
+      <div class="category-scroll-list no-scrollbar flex gap-2 overflow-x-auto pb-2 pt-1 -mx-2 px-2 sm:mx-0 sm:px-0">
         <button
           v-for="cat in categoryCounts"
           :key="cat.category"
@@ -234,24 +234,24 @@ const handlePlayAudio = (text: string, event?: Event) => {
               <!-- Verb / Adjective Conjugations -->
               <div
                 v-if="activeWord.verbForms || activeWord.present"
-                class="mt-4 conjugations-container"
+                class="mt-3 sm:mt-4 conjugations-container"
               >
-                <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div class="grid grid-cols-1 gap-1.5 xs:grid-cols-3 sm:grid-cols-3 sm:gap-2">
                   <!-- Presente -->
                   <div
                     v-if="activeWord.verbForms?.present || activeWord.present"
                     class="conjugation-cell"
                   >
-                    <div>
+                    <div class="min-w-0 pr-1">
                       <span class="nuri-mono cell-label text-[#aaa6d1]">Presente</span>
-                      <span class="cell-val text-[#b9b4ff]">
+                      <span class="cell-val text-[#b9b4ff] truncate block">
                         {{ activeWord.verbForms?.present || activeWord.present }}
                       </span>
                     </div>
                     <button
                       type="button"
                       @click="handlePlayAudio(activeWord.verbForms?.present || activeWord.present!, $event)"
-                      class="cell-audio-btn text-[#aaa6d1] hover:text-white"
+                      class="cell-audio-btn text-[#aaa6d1] hover:text-white shrink-0"
                       title="Escuchar"
                     >
                       <Volume2 :size="14" />
@@ -263,16 +263,16 @@ const handlePlayAudio = (text: string, event?: Event) => {
                     v-if="activeWord.verbForms?.negative"
                     class="conjugation-cell"
                   >
-                    <div>
+                    <div class="min-w-0 pr-1">
                       <span class="nuri-mono cell-label text-[#fca5a5]">Negación (안)</span>
-                      <span class="cell-val text-[#fca5a5]">
+                      <span class="cell-val text-[#fca5a5] truncate block">
                         {{ activeWord.verbForms.negative }}
                       </span>
                     </div>
                     <button
                       type="button"
                       @click="handlePlayAudio(activeWord.verbForms.negative, $event)"
-                      class="cell-audio-btn text-[#fca5a5] hover:text-white"
+                      class="cell-audio-btn text-[#fca5a5] hover:text-white shrink-0"
                       title="Escuchar"
                     >
                       <Volume2 :size="14" />
@@ -284,16 +284,16 @@ const handlePlayAudio = (text: string, event?: Event) => {
                     v-if="activeWord.verbForms?.honorific"
                     class="conjugation-cell"
                   >
-                    <div>
+                    <div class="min-w-0 pr-1">
                       <span class="nuri-mono cell-label text-[#9df1e0]">-(으)세요</span>
-                      <span class="cell-val text-[#9df1e0]">
+                      <span class="cell-val text-[#9df1e0] truncate block">
                         {{ activeWord.verbForms.honorific }}
                       </span>
                     </div>
                     <button
                       type="button"
                       @click="handlePlayAudio(activeWord.verbForms.honorific, $event)"
-                      class="cell-audio-btn text-[#9df1e0] hover:text-white"
+                      class="cell-audio-btn text-[#9df1e0] hover:text-white shrink-0"
                       title="Escuchar"
                     >
                       <Volume2 :size="14" />
@@ -322,7 +322,7 @@ const handlePlayAudio = (text: string, event?: Event) => {
       </div>
 
       <!-- Action buttons -->
-      <div class="nuri-entrance nuri-entrance-4 mt-6 controls-grid">
+      <div class="nuri-entrance nuri-entrance-4 mt-5 sm:mt-6 controls-grid">
         <button
           type="button"
           @click="emit('go-back')"
@@ -355,8 +355,8 @@ const handlePlayAudio = (text: string, event?: Event) => {
         </button>
       </div>
 
-      <!-- Keyboard shortcuts legend -->
-      <div class="mt-4 flex items-center justify-center gap-3 text-[11px] text-[#6c7393]">
+      <!-- Keyboard shortcuts legend (hidden on mobile touch screens) -->
+      <div class="mt-4 hidden sm:flex items-center justify-center gap-3 text-[11px] text-[#6c7393]">
         <span class="inline-flex items-center gap-1.5">
           <kbd class="nuri-key-chip">Espacio</kbd> voltear
         </span>
@@ -496,9 +496,10 @@ const handlePlayAudio = (text: string, event?: Event) => {
 .korean-hero-text {
   font-family: var(--font-korean);
   font-weight: 800;
-  font-size: clamp(3.2rem, 9.5vw, 5.8rem);
+  font-size: clamp(2.5rem, 8vw, 5.2rem);
   line-height: 1;
   color: #1e2338;
+  word-break: keep-all;
 }
 
 .meaning-badge {
@@ -517,8 +518,8 @@ const handlePlayAudio = (text: string, event?: Event) => {
 .spanish-hero-text {
   font-family: var(--font-sans);
   font-weight: 800;
-  font-size: clamp(2rem, 5.5vw, 3.4rem);
-  line-height: 1.05;
+  font-size: clamp(1.6rem, 5vw, 3rem);
+  line-height: 1.1;
   color: #ffffff;
   letter-spacing: -0.02em;
 }
@@ -530,8 +531,8 @@ const handlePlayAudio = (text: string, event?: Event) => {
   border-radius: 10px;
   border: 1px solid rgba(185, 180, 255, 0.22);
   background: rgba(59, 53, 108, 0.6);
-  padding: 0.4rem 0.75rem;
-  font-size: 0.78rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
   color: #dedbff;
 }
 
@@ -539,7 +540,13 @@ const handlePlayAudio = (text: string, event?: Event) => {
   border-radius: 16px;
   border: 1px solid rgba(185, 180, 255, 0.2);
   background: rgba(45, 39, 84, 0.75);
-  padding: 0.875rem;
+  padding: 0.625rem;
+}
+
+@media (min-width: 640px) {
+  .conjugations-container {
+    padding: 0.875rem;
+  }
 }
 
 .conjugation-cell {
@@ -548,7 +555,13 @@ const handlePlayAudio = (text: string, event?: Event) => {
   justify-content: space-between;
   border-radius: 12px;
   background: #241f48;
-  padding: 0.5rem 0.75rem;
+  padding: 0.4rem 0.6rem;
+}
+
+@media (min-width: 640px) {
+  .conjugation-cell {
+    padding: 0.5rem 0.75rem;
+  }
 }
 
 .cell-label {
@@ -559,8 +572,14 @@ const handlePlayAudio = (text: string, event?: Event) => {
 }
 
 .cell-val {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 700;
+}
+
+@media (min-width: 640px) {
+  .cell-val {
+    font-size: 0.9375rem;
+  }
 }
 
 .cell-audio-btn {
@@ -575,8 +594,8 @@ const handlePlayAudio = (text: string, event?: Event) => {
 
 .controls-grid {
   display: grid;
-  grid-template-columns: 64px 1fr 1fr;
-  gap: 0.75rem;
+  grid-template-columns: 52px 1fr 1fr;
+  gap: 0.5rem;
   max-width: 680px;
   margin-left: auto;
   margin-right: auto;
@@ -584,6 +603,7 @@ const handlePlayAudio = (text: string, event?: Event) => {
 
 @media (min-width: 640px) {
   .controls-grid {
+    grid-template-columns: 64px 1fr 1fr;
     gap: 1rem;
   }
 }
