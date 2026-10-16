@@ -8,6 +8,9 @@ import VocabularyView from './components/VocabularyView.vue';
 import TimeNumbersView from './components/TimeNumbersView.vue';
 import LoadingState from './components/LoadingState.vue';
 
+import { isSupabaseConfigured, supabase } from './utils/supabase';
+import AuthModal from './components/AuthModal.vue';
+
 const hydrated = ref(false);
 const knownIds = ref<string[]>([]);
 const reviewCounts = ref<Record<string, number>>({});
@@ -19,10 +22,83 @@ const search = ref('');
 const randomMode = ref(false);
 const randomOrder = ref<string[]>([]);
 
+// Auth & Cloud Sync
+const currentUser = ref<any>(null);
+const showAuthModal = ref(false);
+
 let hydrateTimer: number | undefined;
 
+// Load progress from Supabase
+const loadSupabaseProgress = async (userId: string) => {
+  if (!isSupabaseConfigured) return;
+  try {
+    const { data, error } = await supabase
+      .from('user_progress')
+      .select('known_ids, review_counts')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Could not fetch user progress from Supabase:', error.message);
+      return;
+    }
+
+    if (data) {
+      // Merge remote with local so no offline practice is lost
+      const remoteKnown: string[] = Array.isArray(data.known_ids) ? data.known_ids : [];
+      const remoteReviews: Record<string, number> = data.review_counts || {};
+
+      const mergedKnown = Array.from(new Set([...remoteKnown, ...knownIds.value]));
+      const mergedReviews = { ...remoteReviews };
+      for (const [id, count] of Object.entries(reviewCounts.value)) {
+        mergedReviews[id] = Math.max(mergedReviews[id] || 0, count);
+      }
+
+      knownIds.value = mergedKnown;
+      reviewCounts.value = mergedReviews;
+
+      // Save merged state back to Supabase
+      await saveSupabaseProgress(userId);
+    } else {
+      // First time user: create remote row with current local progress
+      await supabase.from('user_progress').insert({
+        user_id: userId,
+        known_ids: knownIds.value,
+        review_counts: reviewCounts.value,
+        updated_at: new Date().toISOString(),
+      });
+    }
+  } catch (err) {
+    console.error('Error synchronizing with Supabase:', err);
+  }
+};
+
+// Save progress to Supabase
+const saveSupabaseProgress = async (userId?: string) => {
+  const uid = userId || currentUser.value?.id;
+  if (!isSupabaseConfigured || !uid) return;
+
+  try {
+    await supabase.from('user_progress').upsert({
+      user_id: uid,
+      known_ids: knownIds.value,
+      review_counts: reviewCounts.value,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('Failed saving progress to Supabase:', err);
+  }
+};
+
+const handleLogout = async () => {
+  if (isSupabaseConfigured) {
+    await supabase.auth.signOut();
+  }
+  currentUser.value = null;
+};
+
 // Hydration and localStorage loading
-onMounted(() => {
+onMounted(async () => {
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -40,6 +116,26 @@ onMounted(() => {
     }, 240);
   }
 
+  // Check Supabase session
+  if (isSupabaseConfigured) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      currentUser.value = session?.user ?? null;
+      if (currentUser.value) {
+        await loadSupabaseProgress(currentUser.value.id);
+      }
+
+      supabase.auth.onAuthStateChange(async (_event, session) => {
+        currentUser.value = session?.user ?? null;
+        if (session?.user) {
+          await loadSupabaseProgress(session.user.id);
+        }
+      });
+    } catch (e) {
+      console.error('Failed checking Supabase session', e);
+    }
+  }
+
   window.addEventListener('keydown', onKeyDown);
 });
 
@@ -50,7 +146,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown);
 });
 
-// Sync to localStorage
+// Sync to localStorage and Supabase
 watch(
   [hydrated, knownIds, reviewCounts],
   () => {
@@ -65,6 +161,10 @@ watch(
       );
     } catch (e) {
       console.error('Failed saving progress to localStorage', e);
+    }
+
+    if (currentUser.value) {
+      saveSupabaseProgress(currentUser.value.id);
     }
   },
   { deep: true }
@@ -245,7 +345,10 @@ const onKeyDown = (event: KeyboardEvent) => {
         :active-tab="activeTab"
         :known-count="overallKnownCount"
         :total-count="WORDS.length"
+        :user-email="currentUser?.email"
         @update:active-tab="activeTab = $event"
+        @open-auth="showAuthModal = true"
+        @logout="handleLogout"
       />
 
       <!-- Main Content Area -->
@@ -292,6 +395,13 @@ const onKeyDown = (event: KeyboardEvent) => {
         />
       </main>
     </div>
+
+    <!-- Auth Modal -->
+    <AuthModal
+      v-if="showAuthModal"
+      @close="showAuthModal = false"
+      @authenticated="showAuthModal = false"
+    />
   </div>
 </template>
 

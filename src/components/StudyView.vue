@@ -491,11 +491,12 @@ const handlePlayAudio = (text: string, event?: Event) => {
 
 .korean-hero-text {
   font-family: var(--font-korean);
-  font-weight: 800;
-  font-size: clamp(3.25rem, 12vw, 5.2rem);
+  font-weight: 700;
+  font-size: clamp(3.2rem, 11vw, 5rem);
   line-height: 1.15;
   color: #1e2338;
   word-break: keep-all;
+  letter-spacing: -0.025em;
 }
 
 .meaning-badge {
