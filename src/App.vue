@@ -4,6 +4,7 @@ import type { Word, WordCategory, SavedProgress, StudyFilter } from './types';
 import { WORDS, STORAGE_KEY, shuffleWords, CATEGORY_ORDER, CATEGORY_TITLES } from './data/words';
 import Header, { type AppTab } from './components/Header.vue';
 import StudyView from './components/StudyView.vue';
+import VoiceGameView from './components/VoiceGameView.vue';
 import VocabularyView from './components/VocabularyView.vue';
 import TimeNumbersView from './components/TimeNumbersView.vue';
 import LoadingState from './components/LoadingState.vue';
@@ -298,6 +299,12 @@ const toggleKnownWord = (wordId: string) => {
   }
 };
 
+const markWordKnownFromGame = (wordId: string) => {
+  if (!knownIds.value.includes(wordId)) {
+    knownIds.value = [...knownIds.value, wordId];
+  }
+};
+
 const resetProgress = () => {
   knownIds.value = [];
   reviewCounts.value = {};
@@ -413,6 +420,13 @@ const onKeyDown = (event: KeyboardEvent) => {
           @select-category="handleCategoryChange"
           @update:study-filter="handleStudyFilterChange"
           @toggle-word-known="toggleKnownWord"
+        />
+
+        <!-- Duolingo-Style Voice Pronunciation Game -->
+        <VoiceGameView
+          v-else-if="activeTab === 'voice'"
+          :known-ids="knownIds"
+          @mark-known="markWordKnownFromGame"
         />
 
         <!-- Time & Numbers Interactive Trainer -->

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Target, BookOpen, Clock, User, LogOut } from 'lucide-vue-next';
+import { Target, Mic, BookOpen, Clock, User, LogOut } from 'lucide-vue-next';
 
-export type AppTab = 'study' | 'numbers' | 'vocabulary';
+export type AppTab = 'study' | 'voice' | 'numbers' | 'vocabulary';
 
 defineProps<{
   activeTab: AppTab;
@@ -67,6 +67,17 @@ const emit = defineEmits<{
         >
           <Target :size="15" :stroke-width="2.2" />
           <span>Tarjetas</span>
+        </button>
+
+        <button
+          type="button"
+          @click="emit('update:activeTab', 'voice')"
+          data-testid="button-nav-voice"
+          :class="['nav-btn', activeTab === 'voice' ? 'is-active' : '']"
+        >
+          <Mic :size="15" :stroke-width="2.2" />
+          <span class="tab-label-desktop">Juego de Voz</span>
+          <span class="tab-label-mobile">Voz</span>
         </button>
 
         <button
