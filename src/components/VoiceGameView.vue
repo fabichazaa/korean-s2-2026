@@ -579,30 +579,32 @@ onUnmounted(() => {
 .duo-icon-toggle {
   width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9ca3af;
-  background: transparent;
+  color: var(--muted-foreground);
+  background: #ffffff;
+  border: 1px solid var(--border);
   transition: all 0.18s ease;
   flex-shrink: 0;
 }
 
 .duo-icon-toggle:hover {
-  background: rgba(88, 72, 196, 0.08);
+  border-color: rgba(88, 72, 196, 0.35);
   color: var(--primary);
 }
 
 .duo-icon-toggle.is-active {
   color: var(--primary);
   background: var(--primary-light);
+  border-color: rgba(88, 72, 196, 0.35);
 }
 
 .duo-progress-track {
   flex: 1;
-  height: 16px;
-  background: #e5e7eb;
+  height: 12px;
+  background: #e4e8f5;
   border-radius: 9999px;
   overflow: hidden;
   position: relative;
@@ -610,7 +612,7 @@ onUnmounted(() => {
 
 .duo-progress-fill {
   height: 100%;
-  background: #58cc02;
+  background: linear-gradient(90deg, #5848c4 0%, #7c6df0 100%);
   border-radius: 9999px;
   transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
@@ -618,11 +620,11 @@ onUnmounted(() => {
 
 .duo-progress-shine {
   position: absolute;
-  top: 3px;
+  top: 2px;
   left: 8px;
   right: 8px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.35);
+  height: 3px;
+  background: rgba(255, 255, 255, 0.28);
   border-radius: 9999px;
 }
 
@@ -631,13 +633,19 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.25rem;
   font-weight: 800;
-  font-size: 0.95rem;
-  color: #9ca3af;
+  font-size: 0.9rem;
+  color: var(--muted-foreground);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  padding: 0.28rem 0.65rem;
+  border-radius: 9999px;
   flex-shrink: 0;
 }
 
 .duo-streak-badge.is-hot {
-  color: #ff9600;
+  color: #ea580c;
+  background: #fff7ed;
+  border-color: #fed7aa;
 }
 
 .streak-icon {
@@ -645,7 +653,7 @@ onUnmounted(() => {
 }
 
 .xp-mini {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--primary);
   font-weight: 800;
   margin-left: 0.1rem;
@@ -664,7 +672,7 @@ onUnmounted(() => {
   width: 100%;
   max-width: 340px;
   padding-top: 22px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.35rem;
 }
 
 .stack-layer {
@@ -672,8 +680,8 @@ onUnmounted(() => {
   left: 50%;
   transform: translateX(-50%);
   background: #ffffff;
-  border: 2px solid #e5e7eb;
-  border-radius: 28px;
+  border: 1.5px solid var(--border);
+  border-radius: 26px;
   height: 100%;
   pointer-events: none;
 }
@@ -682,14 +690,16 @@ onUnmounted(() => {
   top: 0;
   width: 76%;
   height: 60px;
-  opacity: 0.6;
+  opacity: 0.55;
+  background: #f3f5fc;
 }
 
 .stack-layer.layer-2 {
   top: 7px;
   width: 84%;
   height: 60px;
-  opacity: 0.8;
+  opacity: 0.78;
+  background: #f8f9fe;
 }
 
 .stack-layer.layer-1 {
@@ -702,11 +712,11 @@ onUnmounted(() => {
   position: relative;
   z-index: 2;
   width: 100%;
-  min-height: 250px;
-  background: #ffffff;
-  border: 2px solid #e5e7eb;
-  border-bottom-width: 5px;
-  border-radius: 28px;
+  min-height: 245px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-bottom: 4px solid #cfd6ec;
+  border-radius: 26px;
   padding: 2rem 1.5rem;
   display: flex;
   flex-direction: column;
@@ -714,6 +724,7 @@ onUnmounted(() => {
   justify-content: center;
   text-align: center;
   gap: 0.65rem;
+  box-shadow: var(--shadow-md);
   transition: all 0.2s ease;
   cursor: pointer;
 }
@@ -723,28 +734,32 @@ onUnmounted(() => {
     max-width: 380px;
   }
   .duo-front-card {
-    min-height: 280px;
+    min-height: 275px;
   }
 }
 
 .duo-front-card.is-listening {
-  border-color: #1cb0f6;
+  border-color: var(--primary);
+  border-bottom-color: var(--primary-hover);
+  box-shadow: 0 12px 32px var(--primary-glow);
 }
 
 .duo-front-card.is-success {
-  border-color: #58cc02;
-  background: #f7fff0;
+  border-color: #10b981;
+  border-bottom-color: #059669;
+  background: #f4fbf8;
 }
 
 .duo-front-card.is-retry {
-  border-color: #ff9600;
+  border-color: #f59e0b;
+  border-bottom-color: #d97706;
 }
 
 .card-audio-corner {
   position: absolute;
   top: 16px;
   right: 18px;
-  color: #cbd5e1;
+  color: #b4bcd4;
   transition: color 0.18s ease;
 }
 
@@ -755,7 +770,8 @@ onUnmounted(() => {
 .duo-card-word {
   font-size: clamp(1.6rem, 5vw, 2.15rem);
   font-weight: 800;
-  color: #3c3c3c;
+  color: var(--foreground);
+  letter-spacing: -0.02em;
   line-height: 1.25;
   word-break: break-word;
 }
@@ -772,7 +788,7 @@ onUnmounted(() => {
   display: block;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #6c7393;
+  color: var(--muted-foreground);
   margin-top: 0.2rem;
 }
 
@@ -793,13 +809,13 @@ onUnmounted(() => {
 }
 
 .card-feedback-pill.is-ok {
-  background: #d7ffb8;
-  color: #2b7000;
+  background: var(--secondary);
+  color: var(--secondary-foreground);
 }
 
 .card-feedback-pill.is-warn {
-  background: #fff4e5;
-  color: #b45309;
+  background: var(--accent);
+  color: var(--accent-foreground);
 }
 
 .card-feedback-pill.is-err {
@@ -808,11 +824,11 @@ onUnmounted(() => {
 }
 
 .card-feedback-pill.is-listening {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: var(--primary-light);
+  color: var(--primary);
 }
 
-/* Duolingo Bottom 3D Buttons Row */
+/* Bottom Tactile Buttons Row (Nuri Palette) */
 .duo-actions-row {
   display: flex;
   align-items: center;
@@ -829,31 +845,38 @@ onUnmounted(() => {
 
 .duo-mic-btn {
   flex: 1;
-  height: 64px;
+  height: 62px;
   border-radius: 18px;
-  background: #1cb0f6;
-  border-bottom: 5px solid #1899d6;
+  background: var(--primary);
+  border-bottom: 4px solid #3f3199;
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.1s ease, background 0.18s ease;
+  box-shadow: 0 8px 20px var(--primary-glow);
+  transition: transform 0.1s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.duo-mic-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
 }
 
 .duo-mic-btn:active:not(:disabled) {
-  transform: translateY(3px);
+  transform: translateY(2px);
   border-bottom-width: 2px;
 }
 
 .duo-mic-btn.is-listening {
-  background: #ff4b4b;
-  border-bottom-color: #ea2b2b;
+  background: #e11d48;
+  border-bottom-color: #9f1239;
+  box-shadow: 0 8px 22px rgba(225, 29, 72, 0.3);
   animation: gentlePulse 1.3s infinite ease-in-out;
 }
 
 .duo-mic-btn.is-success {
-  background: #58cc02;
-  border-bottom-color: #46a302;
+  background: #10b981;
+  border-bottom-color: #047857;
+  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.28);
 }
 
 @keyframes gentlePulse {
@@ -866,26 +889,29 @@ onUnmounted(() => {
 }
 
 .duo-skip-btn {
-  width: 72px;
-  height: 64px;
+  width: 70px;
+  height: 62px;
   border-radius: 18px;
   background: #ffffff;
-  border: 2px solid #e5e7eb;
-  border-bottom-width: 5px;
-  color: #1cb0f6;
+  border: 1.5px solid var(--border);
+  border-bottom: 4px solid #cfd6ec;
+  color: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: transform 0.1s ease, background 0.15s ease;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
 .duo-skip-btn:hover {
-  background: #f9fafb;
+  background: var(--primary-light);
+  border-color: rgba(88, 72, 196, 0.35);
+  border-bottom-color: rgba(88, 72, 196, 0.45);
 }
 
 .duo-skip-btn:active {
-  transform: translateY(3px);
+  transform: translateY(2px);
   border-bottom-width: 2px;
 }
 </style>
