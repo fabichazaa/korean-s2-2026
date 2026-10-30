@@ -1,7 +1,8 @@
 import type { Word } from '../types';
 
-export function speakKorean(text: string): void {
+export function speakKorean(text: string, onEnd?: () => void): void {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    if (onEnd) onEnd();
     return;
   }
   
@@ -18,10 +19,24 @@ export function speakKorean(text: string): void {
     if (koreanVoice) {
       utterance.voice = koreanVoice;
     }
+
+    if (onEnd) {
+      let called = false;
+      const done = () => {
+        if (called) return;
+        called = true;
+        window.clearTimeout(fallbackTimer);
+        onEnd();
+      };
+      const fallbackTimer = window.setTimeout(done, 1100);
+      utterance.onend = done;
+      utterance.onerror = done;
+    }
     
     window.speechSynthesis.speak(utterance);
   } catch (err) {
     console.warn('Speech synthesis not available or error occurred:', err);
+    if (onEnd) onEnd();
   }
 }
 

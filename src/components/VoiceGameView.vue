@@ -158,12 +158,23 @@ const buildDeck = () => {
   resetCardState();
 };
 
+const getFinalizedResultCount = (results: any): number => {
+  if (!results) return 0;
+  let count = 0;
+  for (let i = 0; i < results.length; i++) {
+    if (results[i]?.isFinal) {
+      count = i + 1;
+    }
+  }
+  return count;
+};
+
 const resetCardState = () => {
   if (advanceTimer) {
     window.clearTimeout(advanceTimer);
     advanceTimer = undefined;
   }
-  // Ignore any speech recognition results from the previous card
+  // Ignore finalized speech recognition results from the previous card
   consumedResultCount = currentResultsLength;
   hintRevealed.value = false;
   heardText.value = '';
@@ -263,7 +274,7 @@ const startRecognitionSession = () => {
     };
 
     recognition.onresult = (event: any) => {
-      currentResultsLength = event.results.length;
+      currentResultsLength = getFinalizedResultCount(event.results);
 
       // Ignore input while celebrating a match or while TTS audio is playing
       if (
@@ -271,11 +282,14 @@ const startRecognitionSession = () => {
         feedbackState.value === 'success' ||
         Date.now() < ttsMuteUntil
       ) {
-        consumedResultCount = event.results.length;
+        consumedResultCount = currentResultsLength;
         return;
       }
 
-      const startIdx = Math.max(event.resultIndex, consumedResultCount);
+      const startIdx = Math.min(
+        Math.max(event.resultIndex, consumedResultCount),
+         Math.max(0, event.results.length - 1)
+      );
       const alternatives: string[] = [];
       let isFinal = false;
 
@@ -290,15 +304,21 @@ const startRecognitionSession = () => {
       }
 
       if (alternatives.length === 0) return;
-      heardText.value = alternatives[0].trim();
+
+      // Clear previous retry banner as soon as new speech is detected
+      if (feedbackState.value === 'retry' && !isFinal) {
+        feedbackState.value = 'listening';
+      }
+      heardText.value = alternatives[alternatives.length - 1].trim() || alternatives[0].trim();
 
       const matchResult = checkKoreanPronunciationMatch(currentWord.value, alternatives);
 
       if (matchResult.matched) {
         consumedResultCount = event.results.length;
+        currentResultsLength = event.results.length;
         handlePronunciationSuccess(matchResult.bestTranscript);
       } else if (isFinal) {
-        consumedResultCount = event.results.length;
+        consumedResultCount = getFinalizedResultCount(event.results);
         handlePronunciationRetry(matchResult.bestTranscript);
       }
     };
@@ -411,9 +431,25 @@ const nextCard = (fromSuccess = false) => {
 const handleCardTap = () => {
   if (!currentWord.value) return;
   hintRevealed.value = true;
-  // Mute recognition briefly while TTS speaks so it doesn't hear the speaker
-  ttsMuteUntil = Date.now() + 1100;
-  speakKorean(currentWord.value.present || currentWord.value.korean);
+  heardText.value = '';
+  errorMessage.value = '';
+  if (feedbackState.value === 'retry' || feedbackState.value === 'error') {
+    feedbackState.value = micEnabled.value ? 'listening' : 'idle';
+  }
+
+  // Pause mic while TTS speaks so browser audio output doesn't freeze SpeechRecognition,
+  // then restart a fresh recognition session as soon as TTS finishes
+  const wasMicEnabled = micEnabled.value;
+  if (wasMicEnabled) {
+    destroyRecognitionInstance(false);
+  }
+  ttsMuteUntil = Date.now() + 300;
+  speakKorean(currentWord.value.present || currentWord.value.korean, () => {
+    ttsMuteUntil = Date.now() + 150;
+    if (micEnabled.value) {
+      startRecognitionSession();
+    }
+  });
 };
 
 const selectCategory = (cat: WordCategory | 'all') => {
