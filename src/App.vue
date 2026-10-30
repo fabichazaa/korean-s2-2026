@@ -28,6 +28,13 @@ const randomOrder = ref<string[]>([]);
 const currentUser = ref<any>(null);
 const showAuthModal = ref(false);
 
+const userDisplayName = computed(() => {
+  const fromMeta = currentUser.value?.user_metadata?.display_name;
+  const fromReviews = (reviewCounts.value as Record<string, any>).__player_name__;
+  const fromEmail = currentUser.value?.email?.split('@')[0];
+  return fromMeta || fromReviews || fromEmail || null;
+});
+
 let hydrateTimer: number | undefined;
 
 // Load progress from Supabase
@@ -51,9 +58,16 @@ const loadSupabaseProgress = async (userId: string) => {
       const remoteReviews: Record<string, number> = data.review_counts || {};
 
       const mergedKnown = Array.from(new Set([...remoteKnown, ...knownIds.value]));
-      const mergedReviews = { ...remoteReviews };
+      const mergedReviews: Record<string, any> = { ...remoteReviews };
       for (const [id, count] of Object.entries(reviewCounts.value)) {
-        mergedReviews[id] = Math.max(mergedReviews[id] || 0, count);
+        if (typeof count === 'number' && typeof mergedReviews[id] === 'number') {
+          mergedReviews[id] = Math.max(mergedReviews[id] || 0, count);
+        } else if (count !== undefined) {
+          mergedReviews[id] = count;
+        }
+      }
+      if (userDisplayName.value && !mergedReviews.__player_name__) {
+        mergedReviews.__player_name__ = userDisplayName.value;
       }
 
       knownIds.value = mergedKnown;
@@ -80,11 +94,18 @@ const saveSupabaseProgress = async (userId?: string) => {
   const uid = userId || currentUser.value?.id;
   if (!isSupabaseConfigured || !uid) return;
 
+  const reviewsPayload: Record<string, any> = {
+    ...reviewCounts.value,
+  };
+  if (userDisplayName.value) {
+    reviewsPayload.__player_name__ = userDisplayName.value;
+  }
+
   try {
     await supabase.from('user_progress').upsert({
       user_id: uid,
       known_ids: knownIds.value,
-      review_counts: reviewCounts.value,
+      review_counts: reviewsPayload,
       updated_at: new Date().toISOString(),
     });
   } catch (err) {
@@ -299,9 +320,34 @@ const toggleKnownWord = (wordId: string) => {
   }
 };
 
-const markWordKnownFromGame = (wordId: string) => {
+const markWordKnownFromGame = (wordId: string, earnedXp = 10) => {
   if (!knownIds.value.includes(wordId)) {
     knownIds.value = [...knownIds.value, wordId];
+  }
+  reviewCounts.value = {
+    ...reviewCounts.value,
+    __voice_correct__: (reviewCounts.value.__voice_correct__ ?? 0) + 1,
+    __voice_xp__: (reviewCounts.value.__voice_xp__ ?? 0) + earnedXp,
+  };
+};
+
+const handleUpdatePlayerName = async (newName: string) => {
+  reviewCounts.value = {
+    ...reviewCounts.value,
+    __player_name__: newName as any,
+  };
+  if (isSupabaseConfigured && currentUser.value) {
+    try {
+      const { data } = await supabase.auth.updateUser({
+        data: { display_name: newName },
+      });
+      if (data?.user) {
+        currentUser.value = data.user;
+      }
+      await saveSupabaseProgress(currentUser.value.id);
+    } catch {
+      // Ignore update errors
+    }
   }
 };
 
@@ -385,7 +431,7 @@ const onKeyDown = (event: KeyboardEvent) => {
         :active-tab="activeTab"
         :known-count="overallKnownCount"
         :total-count="WORDS.length"
-        :user-email="currentUser?.email"
+        :user-email="userDisplayName || currentUser?.email"
         @update:active-tab="activeTab = $event"
         @open-auth="showAuthModal = true"
         @logout="handleLogout"
@@ -426,7 +472,11 @@ const onKeyDown = (event: KeyboardEvent) => {
         <VoiceGameView
           v-else-if="activeTab === 'voice'"
           :known-ids="knownIds"
+          :user-id="currentUser?.id"
+          :user-email="userDisplayName || currentUser?.email"
+          :voice-correct-count="reviewCounts.__voice_correct__ ?? 0"
           @mark-known="markWordKnownFromGame"
+          @update-player-name="handleUpdatePlayerName"
         />
 
         <!-- Time & Numbers Interactive Trainer -->

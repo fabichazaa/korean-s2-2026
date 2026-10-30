@@ -60,3 +60,25 @@ En la misma terminal donde está corriendo, presiona:
 | `npm run build` | Verifica errores y empaqueta la app lista para subir a internet (`dist/`). |
 | `npm run preview` | Prueba localmente la versión final compilada con `build`. |
 
+---
+
+### 🏆 (Opcional) Tabla en Supabase para el Ranking Global del Juego de Voz
+Si quieres que el ranking inferior del **Juego de Voz** muestre los puntajes de todos los dispositivos en tiempo real en Supabase, corre este SQL una sola vez en el **SQL Editor** de tu proyecto de Supabase:
+
+```sql
+create table if not exists public.voice_leaderboard (
+  player_id text primary key,
+  player_name text not null default 'Estudiante',
+  words_correct int not null default 0,
+  xp int not null default 0,
+  best_streak int not null default 0,
+  updated_at timestamptz default now()
+);
+
+alter table public.voice_leaderboard enable row level security;
+create policy "Public read leaderboard" on public.voice_leaderboard for select using (true);
+create policy "Public upsert leaderboard" on public.voice_leaderboard for insert with check (true);
+create policy "Public update leaderboard" on public.voice_leaderboard for update using (true);
+```
+
+

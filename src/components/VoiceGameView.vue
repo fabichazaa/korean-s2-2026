@@ -10,6 +10,9 @@ import {
   Volume2,
   CheckCircle2,
   AlertCircle,
+  Trophy,
+  Edit3,
+  Check,
 } from 'lucide-vue-next';
 import type { Word, WordCategory } from '../types';
 import { WORDS, CATEGORY_ORDER, CATEGORY_TITLES, shuffleWords } from '../data/words';
@@ -19,22 +22,39 @@ import {
   checkKoreanPronunciationMatch,
   playGameSound,
 } from '../utils/speech';
+import { isSupabaseConfigured, supabase } from '../utils/supabase';
 
-defineProps<{
+const props = defineProps<{
   knownIds: string[];
+  userId?: string | null;
+  userEmail?: string | null;
+  voiceCorrectCount?: number;
 }>();
 
 const emit = defineEmits<{
-  (e: 'mark-known', wordId: string): void;
+  (e: 'mark-known', wordId: string, earnedXp: number): void;
+  (e: 'update-player-name', newName: string): void;
 }>();
 
 type FeedbackState = 'idle' | 'listening' | 'success' | 'retry' | 'error';
 
-const BEST_SCORE_KEY = 'nuri-voice-game-best-score-v1';
+export interface LeaderboardEntry {
+  playerId: string;
+  playerName: string;
+  wordsCorrect: number;
+  xp: number;
+  bestStreak: number;
+  isCurrentUser?: boolean;
+}
 
-// State
+const BEST_SCORE_KEY = 'nuri-voice-game-best-score-v1';
+const PLAYER_STATS_KEY = 'nuri-voice-player-stats-v1';
+const PLAYER_NAME_KEY = 'nuri-voice-player-name-v1';
+const PLAYER_ID_KEY = 'nuri-voice-player-id-v1';
+
+// Game State
 const selectedCategory = ref<WordCategory | 'all'>('all');
-const alwaysShowHangul = ref(false); // Like Duolingo: Spanish only by default, or toggle eye to always show Hangul
+const alwaysShowHangul = ref(false);
 const hintRevealed = ref(false);
 
 const deck = ref<Word[]>([]);
@@ -42,10 +62,13 @@ const currentIndex = ref(0);
 const score = ref(0);
 const bestScore = ref(0);
 const streak = ref(0);
+const bestStreak = ref(0);
 const wordsCompleted = ref(0);
+const totalWordsAllTime = ref(0);
 const lastPointsEarned = ref(0);
 
-// Voice State
+// Continuous Voice State
+const micEnabled = ref(false); // Stays true once pressed until user turns it off
 const isListening = ref(false);
 const feedbackState = ref<FeedbackState>('idle');
 const heardText = ref('');
@@ -54,8 +77,20 @@ const speechSupported = ref(true);
 const isSecureContextFlag = ref(true);
 const isIosChrome = ref(false);
 
+// Leaderboard State
+const playerName = ref('');
+const editingName = ref(false);
+const nameInput = ref('');
+const localPlayerId = ref('');
+const leaderboard = ref<LeaderboardEntry[]>([]);
+const loadingLeaderboard = ref(false);
+
 let recognition: any = null;
 let advanceTimer: number | undefined;
+let reconnectTimer: number | undefined;
+let ttsMuteUntil = 0;
+let consumedResultCount = 0;
+let currentResultsLength = 0;
 
 const categoryCounts = computed(() => {
   const counts: { category: WordCategory | 'all'; label: string; count: number }[] = [
@@ -89,7 +124,6 @@ const showHangul = computed(() => {
   );
 });
 
-// Progress bar fills up every 10 words completed (round progress)
 const progressPercent = computed(() => {
   const inRound = wordsCompleted.value % 10;
   if (wordsCompleted.value > 0 && inRound === 0 && feedbackState.value === 'success') {
@@ -105,6 +139,19 @@ const streakMultiplier = computed(() => {
   return 1;
 });
 
+const maxLeaderboardWords = computed(() => {
+  if (leaderboard.value.length === 0) return 1;
+  return Math.max(1, ...leaderboard.value.map((e) => e.wordsCorrect));
+});
+
+const effectivePlayerId = computed(() => props.userId || localPlayerId.value);
+
+const effectivePlayerName = computed(() => {
+  if (playerName.value.trim()) return playerName.value.trim();
+  if (props.userEmail) return props.userEmail.split('@')[0];
+  return 'Estudiante';
+});
+
 const buildDeck = () => {
   deck.value = shuffleWords(filteredPool.value);
   currentIndex.value = 0;
@@ -116,15 +163,19 @@ const resetCardState = () => {
     window.clearTimeout(advanceTimer);
     advanceTimer = undefined;
   }
+  // Ignore any speech recognition results from the previous card
+  consumedResultCount = currentResultsLength;
   hintRevealed.value = false;
   heardText.value = '';
   errorMessage.value = '';
-  if (feedbackState.value !== 'listening') {
-    feedbackState.value = 'idle';
-  }
+  feedbackState.value = micEnabled.value ? 'listening' : 'idle';
 };
 
-const stopRecognition = (useStop = false) => {
+const destroyRecognitionInstance = (useStop = false) => {
+  if (reconnectTimer) {
+    window.clearTimeout(reconnectTimer);
+    reconnectTimer = undefined;
+  }
   isListening.value = false;
   if (recognition) {
     try {
@@ -141,15 +192,21 @@ const stopRecognition = (useStop = false) => {
     }
     recognition = null;
   }
+};
+
+const stopContinuousMic = () => {
+  micEnabled.value = false;
+  destroyRecognitionInstance(true);
   if (feedbackState.value === 'listening') {
     feedbackState.value = 'idle';
   }
 };
 
-const startRecognition = () => {
-  if (!currentWord.value || feedbackState.value === 'success') return;
+const startRecognitionSession = () => {
+  if (!micEnabled.value) return;
 
   if (!isSecureContextFlag.value) {
+    micEnabled.value = false;
     feedbackState.value = 'error';
     errorMessage.value = 'Abre la app con https:// para usar el micrófono en el celular.';
     return;
@@ -160,6 +217,7 @@ const startRecognition = () => {
 
   if (!SpeechRecognitionCtor) {
     speechSupported.value = false;
+    micEnabled.value = false;
     feedbackState.value = 'error';
     errorMessage.value = isIosChrome.value
       ? 'En iPhone, abre este link en Safari para usar el micrófono.'
@@ -167,9 +225,7 @@ const startRecognition = () => {
     return;
   }
 
-  if (recognition) {
-    stopRecognition(false);
-  }
+  destroyRecognitionInstance(false);
 
   try {
     if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
@@ -178,7 +234,7 @@ const startRecognition = () => {
 
     recognition = new SpeechRecognitionCtor();
     recognition.lang = 'ko-KR';
-    recognition.continuous = false;
+    recognition.continuous = true; // Keep listening across cards!
     recognition.interimResults = true;
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -190,23 +246,40 @@ const startRecognition = () => {
       }
     }
 
+    consumedResultCount = 0;
+    currentResultsLength = 0;
     isListening.value = true;
-    feedbackState.value = 'listening';
+    if (feedbackState.value !== 'success') {
+      feedbackState.value = 'listening';
+    }
     errorMessage.value = '';
 
     recognition.onstart = () => {
       isListening.value = true;
-      feedbackState.value = 'listening';
+      if (feedbackState.value !== 'success') {
+        feedbackState.value = 'listening';
+      }
       errorMessage.value = '';
     };
 
     recognition.onresult = (event: any) => {
-      if (!currentWord.value || feedbackState.value === 'success') return;
+      currentResultsLength = event.results.length;
 
+      // Ignore input while celebrating a match or while TTS audio is playing
+      if (
+        !currentWord.value ||
+        feedbackState.value === 'success' ||
+        Date.now() < ttsMuteUntil
+      ) {
+        consumedResultCount = event.results.length;
+        return;
+      }
+
+      const startIdx = Math.max(event.resultIndex, consumedResultCount);
       const alternatives: string[] = [];
       let isFinal = false;
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      for (let i = startIdx; i < event.results.length; i++) {
         const res = event.results[i];
         if (res.isFinal) isFinal = true;
         for (let j = 0; j < res.length; j++) {
@@ -222,30 +295,37 @@ const startRecognition = () => {
       const matchResult = checkKoreanPronunciationMatch(currentWord.value, alternatives);
 
       if (matchResult.matched) {
+        consumedResultCount = event.results.length;
         handlePronunciationSuccess(matchResult.bestTranscript);
       } else if (isFinal) {
+        consumedResultCount = event.results.length;
         handlePronunciationRetry(matchResult.bestTranscript);
       }
     };
 
     recognition.onerror = (event: any) => {
-      isListening.value = false;
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        micEnabled.value = false;
+        isListening.value = false;
         feedbackState.value = 'error';
         errorMessage.value = 'Permite el acceso al micrófono en tu navegador.';
       } else if (event.error === 'no-speech') {
-        if (feedbackState.value !== 'success') {
-          feedbackState.value = 'idle';
-        }
+        // Ignore no-speech in continuous mode; onend will seamlessly reconnect
       } else if (event.error !== 'aborted') {
-        feedbackState.value = 'error';
-        errorMessage.value = 'No se escuchó bien, intenta de nuevo.';
+        isListening.value = false;
       }
     };
 
     recognition.onend = () => {
       isListening.value = false;
-      if (feedbackState.value === 'listening') {
+      // Automatically keep listening if the user hasn't turned the mic off!
+      if (micEnabled.value) {
+        reconnectTimer = window.setTimeout(() => {
+          if (micEnabled.value) {
+            startRecognitionSession();
+          }
+        }, 140);
+      } else if (feedbackState.value === 'listening') {
         feedbackState.value = 'idle';
       }
     };
@@ -253,44 +333,46 @@ const startRecognition = () => {
     recognition.start();
   } catch {
     isListening.value = false;
-    feedbackState.value = 'error';
-    errorMessage.value = 'No se pudo iniciar el micrófono.';
   }
 };
 
 const toggleMic = () => {
-  if (isListening.value) {
-    stopRecognition(true);
+  if (micEnabled.value) {
+    stopContinuousMic();
   } else {
-    startRecognition();
+    micEnabled.value = true;
+    startRecognitionSession();
   }
 };
 
 const handlePronunciationSuccess = (transcript: string) => {
-  stopRecognition(false);
+  // Keep micEnabled true and DO NOT stop recognition!
   feedbackState.value = 'success';
   heardText.value = transcript;
 
   const basePoints = !alwaysShowHangul.value && !hintRevealed.value ? 15 : 10;
   streak.value += 1;
+  if (streak.value > bestStreak.value) {
+    bestStreak.value = streak.value;
+  }
 
   const earned = Math.round(basePoints * streakMultiplier.value);
   lastPointsEarned.value = earned;
   score.value += earned;
   wordsCompleted.value += 1;
+  totalWordsAllTime.value += 1;
 
   if (score.value > bestScore.value) {
     bestScore.value = score.value;
-    try {
-      window.localStorage.setItem(BEST_SCORE_KEY, String(bestScore.value));
-    } catch {
-      // Ignore
-    }
   }
 
+  saveLocalPlayerStats();
+
   if (currentWord.value) {
-    emit('mark-known', currentWord.value.id);
+    emit('mark-known', currentWord.value.id, earned);
   }
+
+  syncLeaderboardScore();
 
   if (streak.value > 0 && streak.value % 5 === 0) {
     playGameSound('streak');
@@ -300,11 +382,10 @@ const handlePronunciationSuccess = (transcript: string) => {
 
   advanceTimer = window.setTimeout(() => {
     nextCard(true);
-  }, 1150);
+  }, 950);
 };
 
 const handlePronunciationRetry = (transcript: string) => {
-  stopRecognition(false);
   feedbackState.value = 'retry';
   heardText.value = transcript;
   streak.value = 0;
@@ -312,7 +393,7 @@ const handlePronunciationRetry = (transcript: string) => {
 };
 
 const nextCard = (fromSuccess = false) => {
-  stopRecognition(false);
+  // Notice: we do NOT stop the microphone when changing cards!
   if (!fromSuccess) {
     streak.value = 0;
   }
@@ -330,14 +411,218 @@ const nextCard = (fromSuccess = false) => {
 const handleCardTap = () => {
   if (!currentWord.value) return;
   hintRevealed.value = true;
-  stopRecognition(false);
+  // Mute recognition briefly while TTS speaks so it doesn't hear the speaker
+  ttsMuteUntil = Date.now() + 1100;
   speakKorean(currentWord.value.present || currentWord.value.korean);
 };
 
 const selectCategory = (cat: WordCategory | 'all') => {
-  stopRecognition(false);
   selectedCategory.value = cat;
   buildDeck();
+};
+
+// Local & Supabase Leaderboard Persistence
+const loadLocalPlayerStats = () => {
+  try {
+    let pid = window.localStorage.getItem(PLAYER_ID_KEY);
+    if (!pid) {
+      pid = 'p_' + Math.random().toString(36).slice(2, 10);
+      window.localStorage.setItem(PLAYER_ID_KEY, pid);
+    }
+    localPlayerId.value = pid;
+
+    const savedName = window.localStorage.getItem(PLAYER_NAME_KEY);
+    if (savedName) {
+      playerName.value = savedName;
+    }
+
+    const savedBest = window.localStorage.getItem(BEST_SCORE_KEY);
+    if (savedBest) {
+      bestScore.value = parseInt(savedBest, 10) || 0;
+    }
+
+    const rawStats = window.localStorage.getItem(PLAYER_STATS_KEY);
+    if (rawStats) {
+      const parsed = JSON.parse(rawStats);
+      totalWordsAllTime.value = Math.max(
+        parsed.wordsCorrect || 0,
+        props.voiceCorrectCount || 0
+      );
+      bestStreak.value = parsed.bestStreak || 0;
+      score.value = parsed.xp || 0;
+    } else if (props.voiceCorrectCount) {
+      totalWordsAllTime.value = props.voiceCorrectCount;
+    }
+  } catch {
+    // Ignore storage errors
+  }
+};
+
+const saveLocalPlayerStats = () => {
+  try {
+    window.localStorage.setItem(BEST_SCORE_KEY, String(bestScore.value));
+    window.localStorage.setItem(
+      PLAYER_STATS_KEY,
+      JSON.stringify({
+        wordsCorrect: totalWordsAllTime.value,
+        xp: Math.max(score.value, bestScore.value),
+        bestStreak: bestStreak.value,
+      })
+    );
+  } catch {
+    // Ignore
+  }
+};
+
+const savePlayerName = () => {
+  const cleaned = nameInput.value.trim().slice(0, 20);
+  if (cleaned) {
+    playerName.value = cleaned;
+    try {
+      window.localStorage.setItem(PLAYER_NAME_KEY, cleaned);
+    } catch {
+      // Ignore
+    }
+    emit('update-player-name', cleaned);
+    syncLeaderboardScore();
+  }
+  editingName.value = false;
+};
+
+const startEditingName = () => {
+  nameInput.value = effectivePlayerName.value;
+  editingName.value = true;
+};
+
+const fetchLeaderboard = async () => {
+  loadingLeaderboard.value = true;
+  const entriesMap = new Map<string, LeaderboardEntry>();
+
+  // Always include current user's live stats
+  const myId = effectivePlayerId.value;
+  entriesMap.set(myId, {
+    playerId: myId,
+    playerName: effectivePlayerName.value,
+    wordsCorrect: totalWordsAllTime.value,
+    xp: Math.max(score.value, bestScore.value),
+    bestStreak: bestStreak.value,
+    isCurrentUser: true,
+  });
+
+  if (isSupabaseConfigured) {
+    try {
+      // 1. Try dedicated voice_leaderboard table
+      const { data: lbData, error: lbError } = await supabase
+        .from('voice_leaderboard')
+        .select('player_id, player_name, words_correct, xp, best_streak')
+        .order('words_correct', { ascending: false })
+        .limit(15);
+
+      if (!lbError && Array.isArray(lbData)) {
+        for (const row of lbData) {
+          const isMe = row.player_id === myId;
+          const wordsCount = isMe
+            ? Math.max(row.words_correct || 0, totalWordsAllTime.value)
+            : row.words_correct || 0;
+          entriesMap.set(row.player_id, {
+            playerId: row.player_id,
+            playerName: isMe ? effectivePlayerName.value : row.player_name || 'Estudiante',
+            wordsCorrect: wordsCount,
+            xp: isMe ? Math.max(row.xp || 0, score.value) : row.xp || 0,
+            bestStreak: isMe
+              ? Math.max(row.best_streak || 0, bestStreak.value)
+              : row.best_streak || 0,
+            isCurrentUser: isMe,
+          });
+        }
+      } else {
+        // 2. Fallback: read from user_progress table
+        const { data: progData } = await supabase
+          .from('user_progress')
+          .select('user_id, known_ids, review_counts')
+          .limit(20);
+
+        if (Array.isArray(progData)) {
+          for (const row of progData) {
+            const isMe = row.user_id === props.userId;
+            const rc = (row.review_counts || {}) as Record<string, any>;
+            const voiceCount =
+              typeof rc.__voice_correct__ === 'number'
+                ? rc.__voice_correct__
+                : Array.isArray(row.known_ids)
+                ? row.known_ids.length
+                : 0;
+            const displayName =
+              typeof rc.__player_name__ === 'string'
+                ? rc.__player_name__
+                : isMe
+                ? effectivePlayerName.value
+                : `Usuario ${String(row.user_id).slice(0, 4)}`;
+
+            if (voiceCount > 0 || isMe) {
+              const targetId = isMe ? myId : row.user_id;
+              entriesMap.set(targetId, {
+                playerId: targetId,
+                playerName: displayName,
+                wordsCorrect: isMe
+                  ? Math.max(voiceCount, totalWordsAllTime.value)
+                  : voiceCount,
+                xp: rc.__voice_xp__ || voiceCount * 10,
+                bestStreak: isMe ? bestStreak.value : 0,
+                isCurrentUser: isMe,
+              });
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore network/table errors and show available entries
+    }
+  }
+
+  leaderboard.value = Array.from(entriesMap.values())
+    .sort((a, b) => b.wordsCorrect - a.wordsCorrect || b.xp - a.xp)
+    .slice(0, 10);
+  loadingLeaderboard.value = false;
+};
+
+const syncLeaderboardScore = async () => {
+  // Update local leaderboard immediately for instant UI responsiveness
+  const myId = effectivePlayerId.value;
+  const existingIdx = leaderboard.value.findIndex((e) => e.playerId === myId || e.isCurrentUser);
+  const myEntry: LeaderboardEntry = {
+    playerId: myId,
+    playerName: effectivePlayerName.value,
+    wordsCorrect: totalWordsAllTime.value,
+    xp: Math.max(score.value, bestScore.value),
+    bestStreak: bestStreak.value,
+    isCurrentUser: true,
+  };
+
+  if (existingIdx >= 0) {
+    leaderboard.value[existingIdx] = myEntry;
+  } else {
+    leaderboard.value.push(myEntry);
+  }
+  leaderboard.value.sort((a, b) => b.wordsCorrect - a.wordsCorrect || b.xp - a.xp);
+
+  if (!isSupabaseConfigured) return;
+
+  try {
+    await supabase.from('voice_leaderboard').upsert(
+      {
+        player_id: myId,
+        player_name: effectivePlayerName.value,
+        words_correct: totalWordsAllTime.value,
+        xp: Math.max(score.value, bestScore.value),
+        best_streak: bestStreak.value,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'player_id' }
+    );
+  } catch {
+    // Table might not exist yet; user_progress fallback still works
+  }
 };
 
 const handleKeyDown = (event: KeyboardEvent) => {
@@ -360,25 +645,31 @@ watch(selectedCategory, () => {
   buildDeck();
 });
 
+watch(
+  () => props.voiceCorrectCount,
+  (newVal) => {
+    if (typeof newVal === 'number' && newVal > totalWordsAllTime.value) {
+      totalWordsAllTime.value = newVal;
+      syncLeaderboardScore();
+    }
+  }
+);
+
 onMounted(() => {
   isSecureContextFlag.value = typeof window !== 'undefined' ? Boolean(window.isSecureContext) : true;
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
   isIosChrome.value = /CriOS/i.test(ua);
   speechSupported.value = isSpeechRecognitionSupported();
-  try {
-    const savedBest = window.localStorage.getItem(BEST_SCORE_KEY);
-    if (savedBest) {
-      bestScore.value = parseInt(savedBest, 10) || 0;
-    }
-  } catch {
-    // Ignore
-  }
+
+  loadLocalPlayerStats();
   buildDeck();
+  fetchLeaderboard();
+
   window.addEventListener('keydown', handleKeyDown);
 });
 
 onUnmounted(() => {
-  stopRecognition(false);
+  stopContinuousMic();
   if (advanceTimer) window.clearTimeout(advanceTimer);
   window.removeEventListener('keydown', handleKeyDown);
 });
@@ -400,9 +691,9 @@ onUnmounted(() => {
       </button>
     </div>
 
-    <!-- Duolingo-Style Top Progress & Streak Bar -->
+    <!-- Top Progress & Streak Bar -->
     <div class="duo-top-bar">
-      <!-- Toggle Hangul visibility button (left icon like Duolingo's gear) -->
+      <!-- Toggle Hangul visibility button -->
       <button
         type="button"
         @click="alwaysShowHangul = !alwaysShowHangul"
@@ -423,7 +714,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Streak & XP Counter (Right side like Duolingo timer) -->
+      <!-- Streak & XP Counter -->
       <div class="duo-streak-badge" :class="{ 'is-hot': streak > 0 }">
         <Flame :size="18" class="streak-icon" />
         <span>{{ streak }}</span>
@@ -431,7 +722,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Stacked Card Deck (Duolingo 3D Stack) -->
+    <!-- Stacked Card Deck -->
     <div v-if="currentWord" class="duo-deck-stage">
       <div class="duo-card-stack">
         <!-- Background stacked cards peeking at the top -->
@@ -445,7 +736,7 @@ onUnmounted(() => {
           @click="handleCardTap"
           :class="[
             'duo-front-card',
-            isListening ? 'is-listening' : '',
+            micEnabled ? 'is-listening' : '',
             feedbackState === 'success' ? 'is-success' : '',
             feedbackState === 'retry' ? 'is-retry' : '',
           ]"
@@ -485,28 +776,30 @@ onUnmounted(() => {
             <MicOff :size="14" />
             <span>{{ errorMessage }}</span>
           </span>
-          <span v-else-if="isListening && heardText" class="card-feedback-pill is-listening">
+          <span v-else-if="micEnabled && heardText" class="card-feedback-pill is-listening">
             <span>{{ heardText }}</span>
           </span>
         </button>
       </div>
 
-      <!-- Duolingo Action Row: Wide Mic Button + Square Skip Button -->
+      <!-- Bottom Tactile Action Row: Continuous Mic Toggle + Skip Button -->
       <div class="duo-actions-row">
-        <!-- Wide 3D Microphone Button -->
+        <!-- Wide Continuous Microphone Toggle Button -->
         <button
           type="button"
-          :disabled="feedbackState === 'success'"
           @click="toggleMic"
           :class="[
             'duo-mic-btn',
-            isListening ? 'is-listening' : '',
+            micEnabled ? 'is-listening' : '',
             feedbackState === 'success' ? 'is-success' : '',
           ]"
-          aria-label="Hablar por micrófono"
+          :aria-label="micEnabled ? 'Desactivar micrófono continuo' : 'Activar micrófono continuo'"
         >
-          <CheckCircle2 v-if="feedbackState === 'success'" :size="28" :stroke-width="2.5" />
-          <Mic v-else :size="28" :stroke-width="2.4" />
+          <CheckCircle2 v-if="feedbackState === 'success'" :size="26" :stroke-width="2.5" />
+          <Mic v-else :size="26" :stroke-width="2.4" />
+          <span class="mic-btn-label">
+            {{ micEnabled ? 'Escuchando continuo' : 'Activar micrófono' }}
+          </span>
         </button>
 
         <!-- Square 3D Skip / Next Card Button -->
@@ -519,6 +812,88 @@ onUnmounted(() => {
         >
           <RefreshCw :size="24" :stroke-width="2.4" />
         </button>
+      </div>
+    </div>
+
+    <!-- Bottom Ranking / Chart of Most Words Done Correctly -->
+    <div class="leaderboard-card mt-10">
+      <div class="leaderboard-header">
+        <div class="flex items-center gap-2">
+          <div class="lb-icon-badge">
+            <Trophy :size="16" />
+          </div>
+          <div>
+            <h3 class="lb-title">Ranking de Palabras Acertadas</h3>
+            <p class="lb-subtitle">Palabras pronunciadas correctamente por usuario</p>
+          </div>
+        </div>
+
+        <!-- Edit Nickname Pill -->
+        <div class="lb-name-editor">
+          <template v-if="editingName">
+            <input
+              v-model="nameInput"
+              type="text"
+              maxlength="20"
+              placeholder="Tu nombre..."
+              class="lb-name-input"
+              @keydown.enter="savePlayerName"
+            />
+            <button type="button" @click="savePlayerName" class="lb-name-save-btn" title="Guardar">
+              <Check :size="14" />
+            </button>
+          </template>
+          <template v-else>
+            <button
+              type="button"
+              @click="startEditingName"
+              class="lb-name-pill"
+              title="Cambiar tu nombre en el ranking"
+            >
+              <span>{{ effectivePlayerName }}</span>
+              <Edit3 :size="12" />
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <!-- Bar Chart & Player Rows -->
+      <div class="lb-list">
+        <div
+          v-for="(entry, idx) in leaderboard"
+          :key="entry.playerId"
+          :class="['lb-row', entry.isCurrentUser ? 'is-me' : '']"
+        >
+          <div class="lb-row-top">
+            <div class="flex items-center gap-2 min-w-0">
+              <span :class="['lb-rank', idx < 3 ? `rank-${idx + 1}` : '']">
+                {{ idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1 }}
+              </span>
+              <span class="lb-player-name truncate">
+                {{ entry.playerName }}
+              </span>
+              <span v-if="entry.isCurrentUser" class="lb-you-tag">Tú</span>
+            </div>
+
+            <div class="lb-stats-right">
+              <span class="lb-words-count">{{ entry.wordsCorrect }} palabras</span>
+              <span v-if="entry.bestStreak > 0" class="lb-streak-mini">
+                {{ entry.bestStreak }}🔥
+              </span>
+            </div>
+          </div>
+
+          <!-- Horizontal Bar Chart Track -->
+          <div class="lb-bar-track">
+            <div
+              class="lb-bar-fill"
+              :class="{ 'is-me-fill': entry.isCurrentUser }"
+              :style="{
+                width: `${Math.max(6, Math.round((entry.wordsCorrect / maxLeaderboardWords) * 100))}%`,
+              }"
+            />
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -853,8 +1228,16 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.55rem;
+  font-weight: 700;
+  font-size: 0.9rem;
   box-shadow: 0 8px 20px var(--primary-glow);
   transition: transform 0.1s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.mic-btn-label {
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 
 .duo-mic-btn:hover:not(:disabled) {
@@ -870,7 +1253,7 @@ onUnmounted(() => {
   background: #e11d48;
   border-bottom-color: #9f1239;
   box-shadow: 0 8px 22px rgba(225, 29, 72, 0.3);
-  animation: gentlePulse 1.3s infinite ease-in-out;
+  animation: gentlePulse 1.5s infinite ease-in-out;
 }
 
 .duo-mic-btn.is-success {
@@ -884,7 +1267,7 @@ onUnmounted(() => {
     transform: scale(1);
   }
   50% {
-    transform: scale(1.03);
+    transform: scale(1.02);
   }
 }
 
@@ -913,5 +1296,183 @@ onUnmounted(() => {
 .duo-skip-btn:active {
   transform: translateY(2px);
   border-bottom-width: 2px;
+}
+
+/* Leaderboard & Chart Card */
+.leaderboard-card {
+  background: #ffffff;
+  border: 1.5px solid var(--border);
+  border-radius: 22px;
+  padding: 1.15rem 1.15rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.leaderboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.lb-icon-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lb-title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--foreground);
+  line-height: 1.15;
+}
+
+.lb-subtitle {
+  font-size: 0.7rem;
+  color: var(--muted-foreground);
+  margin-top: 0.1rem;
+}
+
+.lb-name-editor {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.lb-name-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: var(--muted);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  transition: all 0.15s ease;
+}
+
+.lb-name-pill:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.lb-name-input {
+  width: 115px;
+  padding: 0.25rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.lb-name-save-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.lb-row {
+  padding: 0.6rem 0.75rem;
+  border-radius: 14px;
+  background: #f8f9fd;
+  border: 1px solid #edf0f8;
+}
+
+.lb-row.is-me {
+  background: #f4f3ff;
+  border-color: rgba(88, 72, 196, 0.28);
+}
+
+.lb-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.lb-rank {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--muted-foreground);
+  min-width: 22px;
+  text-align: center;
+}
+
+.lb-player-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.lb-you-tag {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 0.08rem 0.4rem;
+  border-radius: 9999px;
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.lb-stats-right {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.lb-words-count {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.lb-streak-mini {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #ea580c;
+}
+
+.lb-bar-track {
+  width: 100%;
+  height: 7px;
+  background: #e4e8f5;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.lb-bar-fill {
+  height: 100%;
+  background: #94a3b8;
+  border-radius: 9999px;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lb-bar-fill.is-me-fill {
+  background: linear-gradient(90deg, #5848c4 0%, #7c6df0 100%);
 }
 </style>

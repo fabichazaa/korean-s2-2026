@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { supabase } from '../utils/supabase';
-import { X, Mail, Lock, Sparkles, AlertCircle, CheckCircle2, Loader2, Eye, EyeOff } from 'lucide-vue-next';
+import { X, Mail, Lock, User, Sparkles, AlertCircle, CheckCircle2, Loader2, Eye, EyeOff } from 'lucide-vue-next';
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -9,6 +9,7 @@ const emit = defineEmits<{
 }>();
 
 const mode = ref<'login' | 'signup'>('login');
+const displayName = ref('');
 const email = ref('');
 const password = ref('');
 const confirmPassword = ref('');
@@ -37,11 +38,15 @@ const handleSubmit = async () => {
 
   try {
     if (mode.value === 'signup') {
+      const cleanName = displayName.value.trim() || email.value.trim().split('@')[0];
       const { data, error } = await supabase.auth.signUp({
         email: email.value.trim(),
         password: password.value,
         options: {
           emailRedirectTo: window.location.origin,
+          data: {
+            display_name: cleanName,
+          },
         },
       });
 
@@ -129,6 +134,22 @@ const handleSubmit = async () => {
         <div v-if="successMsg" class="alert-box is-success flex items-start gap-2">
           <CheckCircle2 :size="16" class="shrink-0 mt-0.5 text-emerald-600" />
           <span class="text-xs text-emerald-700 leading-snug">{{ successMsg }}</span>
+        </div>
+
+        <!-- Display Name Field (Only for Signup) -->
+        <div v-if="mode === 'signup'" class="input-group">
+          <label class="input-label">Tu nombre o apodo (para el ranking)</label>
+          <div class="input-wrapper">
+            <User :size="16" class="input-icon" />
+            <input
+              v-model="displayName"
+              type="text"
+              required
+              maxlength="24"
+              placeholder="Ej: Fabs"
+              class="auth-input"
+            />
+          </div>
         </div>
 
         <!-- Email Field -->
