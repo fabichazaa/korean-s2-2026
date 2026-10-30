@@ -539,11 +539,11 @@ const fetchLeaderboard = async () => {
         // 2. Fallback: read from user_progress table
         const { data: progData } = await supabase
           .from('user_progress')
-          .select('user_id, known_ids, review_counts')
+          .select('*')
           .limit(20);
 
         if (Array.isArray(progData)) {
-          for (const row of progData) {
+          for (const row of progData as any[]) {
             const isMe = row.user_id === props.userId;
             const rc = (row.review_counts || {}) as Record<string, any>;
             const voiceCount =
@@ -553,11 +553,9 @@ const fetchLeaderboard = async () => {
                 ? row.known_ids.length
                 : 0;
             const displayName =
-              typeof rc.__player_name__ === 'string'
-                ? rc.__player_name__
-                : isMe
-                ? effectivePlayerName.value
-                : `Usuario ${String(row.user_id).slice(0, 4)}`;
+              row.user_name ||
+              (typeof rc.__player_name__ === 'string' ? rc.__player_name__ : '') ||
+              (isMe ? effectivePlayerName.value : `Usuario ${String(row.user_id).slice(0, 4)}`);
 
             if (voiceCount > 0 || isMe) {
               const targetId = isMe ? myId : row.user_id;

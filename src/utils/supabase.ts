@@ -9,6 +9,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface DbUserProgress {
   user_id: string;
+  user_name?: string;
   known_ids: string[];
   review_counts: Record<string, number>;
   updated_at?: string;

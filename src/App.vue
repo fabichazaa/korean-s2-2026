@@ -43,7 +43,7 @@ const loadSupabaseProgress = async (userId: string) => {
   try {
     const { data, error } = await supabase
       .from('user_progress')
-      .select('known_ids, review_counts')
+      .select('user_name, known_ids, review_counts')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -66,7 +66,9 @@ const loadSupabaseProgress = async (userId: string) => {
           mergedReviews[id] = count;
         }
       }
-      if (userDisplayName.value && !mergedReviews.__player_name__) {
+      if (data.user_name && !mergedReviews.__player_name__) {
+        mergedReviews.__player_name__ = data.user_name;
+      } else if (userDisplayName.value && !mergedReviews.__player_name__) {
         mergedReviews.__player_name__ = userDisplayName.value;
       }
 
@@ -79,6 +81,7 @@ const loadSupabaseProgress = async (userId: string) => {
       // First time user: create remote row with current local progress
       await supabase.from('user_progress').insert({
         user_id: userId,
+        user_name: userDisplayName.value || 'Estudiante',
         known_ids: knownIds.value,
         review_counts: reviewCounts.value,
         updated_at: new Date().toISOString(),
@@ -104,6 +107,7 @@ const saveSupabaseProgress = async (userId?: string) => {
   try {
     await supabase.from('user_progress').upsert({
       user_id: uid,
+      user_name: userDisplayName.value || 'Estudiante',
       known_ids: knownIds.value,
       review_counts: reviewsPayload,
       updated_at: new Date().toISOString(),
