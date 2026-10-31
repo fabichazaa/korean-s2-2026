@@ -577,12 +577,54 @@ const startEditingName = () => {
   editingName.value = true;
 };
 
+const deduplicateLeaderboard = (entries: LeaderboardEntry[]): LeaderboardEntry[] => {
+  const byName = new Map<string, LeaderboardEntry>();
+  const myNameLower = effectivePlayerName.value.trim().toLowerCase();
+
+  for (const item of entries) {
+    const isMe =
+      Boolean(item.isCurrentUser) ||
+      item.playerId === effectivePlayerId.value ||
+      item.playerId === localPlayerId.value ||
+      (Boolean(props.userId) && item.playerId === props.userId) ||
+      item.playerName.trim().toLowerCase() === myNameLower;
+
+    const key = isMe ? '__me__' : item.playerName.trim().toLowerCase();
+    const existing = byName.get(key);
+
+    if (!existing) {
+      byName.set(key, {
+        ...item,
+        playerId: isMe ? effectivePlayerId.value : item.playerId,
+        playerName: isMe ? effectivePlayerName.value : item.playerName,
+        isCurrentUser: isMe,
+      });
+    } else {
+      byName.set(key, {
+        playerId: isMe ? effectivePlayerId.value : existing.playerId,
+        playerName: isMe ? effectivePlayerName.value : existing.playerName,
+        wordsCorrect: Math.max(existing.wordsCorrect, item.wordsCorrect),
+        xp: Math.max(existing.xp, item.xp),
+        bestStreak: Math.max(existing.bestStreak, item.bestStreak),
+        isCurrentUser: Boolean(existing.isCurrentUser || isMe),
+      });
+    }
+  }
+
+  return Array.from(byName.values())
+    .sort((a, b) => b.wordsCorrect - a.wordsCorrect || b.xp - a.xp)
+    .slice(0, 10);
+};
+
 const fetchLeaderboard = async () => {
   loadingLeaderboard.value = true;
-  const entriesMap = new Map<string, LeaderboardEntry>();
+  const rawEntries: LeaderboardEntry[] = [];
+  const duplicateIdsToClean: string[] = [];
 
   const myId = effectivePlayerId.value;
-  entriesMap.set(myId, {
+  const myNameLower = effectivePlayerName.value.trim().toLowerCase();
+
+  rawEntries.push({
     playerId: myId,
     playerName: effectivePlayerName.value,
     wordsCorrect: totalWordsAllTime.value,
@@ -597,24 +639,49 @@ const fetchLeaderboard = async () => {
         .from('voice_leaderboard')
         .select('player_id, player_name, words_correct, xp, best_streak')
         .order('words_correct', { ascending: false })
-        .limit(15);
+        .limit(25);
 
       if (!lbError && Array.isArray(lbData)) {
         for (const row of lbData) {
-          const isMe = row.player_id === myId;
-          const wordsCount = isMe
-            ? Math.max(row.words_correct || 0, totalWordsAllTime.value)
-            : row.words_correct || 0;
-          entriesMap.set(row.player_id, {
+          const rowNameLower = (row.player_name || '').trim().toLowerCase();
+          const isMe =
+            row.player_id === myId ||
+            row.player_id === localPlayerId.value ||
+            (Boolean(props.userId) && row.player_id === props.userId) ||
+            (rowNameLower && rowNameLower === myNameLower);
+
+          if (isMe) {
+            if (row.words_correct > totalWordsAllTime.value) {
+              totalWordsAllTime.value = row.words_correct;
+            }
+            if (row.xp > bestScore.value) {
+              bestScore.value = row.xp;
+            }
+            if (row.best_streak > bestStreak.value) {
+              bestStreak.value = row.best_streak;
+            }
+            if (row.player_id !== myId) {
+              duplicateIdsToClean.push(row.player_id);
+            }
+          }
+
+          rawEntries.push({
             playerId: row.player_id,
-            playerName: isMe ? effectivePlayerName.value : row.player_name || 'Estudiante',
-            wordsCorrect: wordsCount,
-            xp: isMe ? Math.max(row.xp || 0, score.value) : row.xp || 0,
-            bestStreak: isMe
-              ? Math.max(row.best_streak || 0, bestStreak.value)
-              : row.best_streak || 0,
+            playerName: row.player_name || 'Estudiante',
+            wordsCorrect: row.words_correct || 0,
+            xp: row.xp || 0,
+            bestStreak: row.best_streak || 0,
             isCurrentUser: isMe,
           });
+        }
+
+        // Remove any leftover guest/duplicate rows for the current user from Supabase
+        if (duplicateIdsToClean.length > 0) {
+          supabase
+            .from('voice_leaderboard')
+            .delete()
+            .in('player_id', duplicateIdsToClean)
+            .then(() => {});
         }
       } else {
         const { data: progData } = await supabase
@@ -638,9 +705,8 @@ const fetchLeaderboard = async () => {
               (isMe ? effectivePlayerName.value : `Usuario ${String(row.user_id).slice(0, 4)}`);
 
             if (voiceCount > 0 || isMe) {
-              const targetId = isMe ? myId : row.user_id;
-              entriesMap.set(targetId, {
-                playerId: targetId,
+              rawEntries.push({
+                playerId: isMe ? myId : row.user_id,
                 playerName: displayName,
                 wordsCorrect: isMe
                   ? Math.max(voiceCount, totalWordsAllTime.value)
@@ -658,15 +724,12 @@ const fetchLeaderboard = async () => {
     }
   }
 
-  leaderboard.value = Array.from(entriesMap.values())
-    .sort((a, b) => b.wordsCorrect - a.wordsCorrect || b.xp - a.xp)
-    .slice(0, 10);
+  leaderboard.value = deduplicateLeaderboard(rawEntries);
   loadingLeaderboard.value = false;
 };
 
 const syncLeaderboardScore = async () => {
   const myId = effectivePlayerId.value;
-  const existingIdx = leaderboard.value.findIndex((e) => e.playerId === myId || e.isCurrentUser);
   const myEntry: LeaderboardEntry = {
     playerId: myId,
     playerName: effectivePlayerName.value,
@@ -676,12 +739,7 @@ const syncLeaderboardScore = async () => {
     isCurrentUser: true,
   };
 
-  if (existingIdx >= 0) {
-    leaderboard.value[existingIdx] = myEntry;
-  } else {
-    leaderboard.value.push(myEntry);
-  }
-  leaderboard.value.sort((a, b) => b.wordsCorrect - a.wordsCorrect || b.xp - a.xp);
+  leaderboard.value = deduplicateLeaderboard([...leaderboard.value, myEntry]);
 
   if (!isSupabaseConfigured) return;
 
@@ -721,6 +779,13 @@ const handleKeyDown = (event: KeyboardEvent) => {
 watch(selectedCategory, () => {
   buildDeck();
 });
+
+watch(
+  () => [props.userId, props.userEmail],
+  () => {
+    fetchLeaderboard();
+  }
+);
 
 watch(
   () => props.voiceCorrectCount,
