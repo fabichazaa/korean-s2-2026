@@ -88,10 +88,9 @@ let advanceTimer: number | undefined;
 let reconnectTimer: number | undefined;
 let retryJudgeTimer: number | undefined;
 
-// Cumulative transcript tracking (prevents previous card's speech from bleeding into new card)
-let latestFullTranscript = '';
-let consumedFullTranscript = '';
-let consumedWordList: string[] = [];
+// Snapshot of the recognition transcript at the moment the current card appeared
+let latestRawTranscript = '';
+let transcriptAtCardStart = '';
 let previousWord: Word | null = null;
 let cardSwitchedAt = 0;
 
@@ -155,41 +154,20 @@ const effectivePlayerName = computed(() => {
   return 'Estudiante';
 });
 
-// Mark all speech received up to this moment as already consumed
-const markCurrentSpeechConsumed = (snapshot?: string) => {
-  const text = (snapshot ?? latestFullTranscript).trim();
-  consumedFullTranscript = text;
-  consumedWordList = text ? text.split(/\s+/).filter(Boolean) : [];
-};
+// Extract what the user has spoken on the CURRENT card (ignoring leftover text from previous cards)
+const getSpokenOnCurrentCard = (rawFull: string): string => {
+  const clean = rawFull.trim();
+  if (!clean) return '';
+  if (!transcriptAtCardStart) return clean;
+  if (clean === transcriptAtCardStart) return '';
 
-// Extract only the NEW words spoken after consumedFullTranscript
-const extractUnreadSpeech = (fullText: string): string => {
-  const cleanFull = fullText.trim();
-  if (!cleanFull) return '';
-  if (!consumedFullTranscript) return cleanFull;
-  if (cleanFull === consumedFullTranscript) return '';
-
-  // Case 1: cleanFull starts with consumedFullTranscript
-  if (cleanFull.startsWith(consumedFullTranscript)) {
-    return cleanFull.slice(consumedFullTranscript.length).trim();
+  if (clean.startsWith(transcriptAtCardStart)) {
+    return clean.slice(transcriptAtCardStart.length).trim();
   }
 
-  // Case 2: iOS Safari slightly modified an earlier character in the cumulative buffer
-  const currentWords = cleanFull.split(/\s+/).filter(Boolean);
-  if (currentWords.length > consumedWordList.length) {
-    return currentWords.slice(consumedWordList.length).join(' ').trim();
-  }
-
-  // Case 3: Same number of words, check if the last word itself changed
-  if (
-    currentWords.length > 0 &&
-    consumedWordList.length > 0 &&
-    currentWords[currentWords.length - 1] !== consumedWordList[consumedWordList.length - 1]
-  ) {
-    return currentWords[currentWords.length - 1];
-  }
-
-  return '';
+  // If the recognizer modified earlier text or started a fresh buffer, take the newest word(s)
+  const words = clean.split(/\s+/).filter(Boolean);
+  return words.length > 0 ? words[words.length - 1] : clean;
 };
 
 const clearTimers = () => {
@@ -212,12 +190,12 @@ const buildDeck = () => {
 
 const resetCardState = () => {
   clearTimers();
-  markCurrentSpeechConsumed();
+  transcriptAtCardStart = latestRawTranscript;
   cardSwitchedAt = Date.now();
   hintRevealed.value = false;
   heardText.value = '';
   errorMessage.value = '';
-  feedbackState.value = micEnabled.value ? 'listening' : 'idle';
+  feedbackState.value = isListening.value ? 'listening' : 'idle';
 };
 
 const destroyRecognitionInstance = (useStop = false) => {
@@ -292,13 +270,8 @@ const startRecognitionSession = () => {
       }
     }
 
-    latestFullTranscript = '';
-    consumedFullTranscript = '';
-    consumedWordList = [];
-    isListening.value = true;
-    if (feedbackState.value !== 'success') {
-      feedbackState.value = 'listening';
-    }
+    latestRawTranscript = '';
+    transcriptAtCardStart = '';
     errorMessage.value = '';
 
     recognition.onstart = () => {
@@ -310,21 +283,20 @@ const startRecognitionSession = () => {
     };
 
     recognition.onresult = (event: any) => {
-      // Build full cumulative transcript across all result segments
       const segments: string[] = [];
       for (let i = 0; i < event.results.length; i++) {
         const seg = event.results[i]?.[0]?.transcript;
         if (seg) segments.push(seg.trim());
       }
-      latestFullTranscript = segments.join(' ').trim();
+      latestRawTranscript = segments.join(' ').trim();
 
-      // If we are currently celebrating a correct answer, absorb any trailing speech events
+      // If celebrating a correct answer, record transcript so it's ignored on the next card
       if (!currentWord.value || feedbackState.value === 'success') {
-        markCurrentSpeechConsumed(latestFullTranscript);
+        transcriptAtCardStart = latestRawTranscript;
         return;
       }
 
-      const newSpeech = extractUnreadSpeech(latestFullTranscript);
+      const newSpeech = getSpokenOnCurrentCard(latestRawTranscript);
       if (!newSpeech) {
         return;
       }
@@ -337,29 +309,32 @@ const startRecognitionSession = () => {
         checkKoreanPronunciationMatch(previousWord, [newSpeech]).matched &&
         !checkKoreanPronunciationMatch(currentWord.value, [newSpeech]).matched
       ) {
-        markCurrentSpeechConsumed(latestFullTranscript);
+        transcriptAtCardStart = latestRawTranscript;
         return;
       }
 
-      // Build candidate list: the new speech segment, its last word, and any alternative transcripts
-      const wordsInNewSpeech = newSpeech.split(/\s+/).filter(Boolean);
-      const lastSpokenWord =
-        wordsInNewSpeech.length > 0 ? wordsInNewSpeech[wordsInNewSpeech.length - 1] : newSpeech;
+      const wordsInSpeech = newSpeech.split(/\s+/).filter(Boolean);
+      const lastWord =
+        wordsInSpeech.length > 0 ? wordsInSpeech[wordsInSpeech.length - 1] : newSpeech;
+      const lastTwoWords =
+        wordsInSpeech.length >= 2 ? wordsInSpeech.slice(-2).join(' ') : newSpeech;
 
-      const candidates = new Set<string>([newSpeech, lastSpokenWord]);
+      const candidates = new Set<string>([newSpeech, lastWord, lastTwoWords]);
       const lastResult = event.results[event.results.length - 1];
       if (lastResult) {
         for (let j = 0; j < lastResult.length; j++) {
           const alt = lastResult[j]?.transcript?.trim();
           if (alt) {
-            const altNew = extractUnreadSpeech(alt) || alt.split(/\s+/).pop() || alt;
-            if (altNew) candidates.add(altNew);
+            candidates.add(alt);
+            const altWords = alt.split(/\s+/).filter(Boolean);
+            if (altWords.length > 0) {
+              candidates.add(altWords[altWords.length - 1]);
+            }
           }
         }
       }
 
-      // Show only the latest spoken word/phrase on the card pill
-      const displayHeard = lastSpokenWord || newSpeech;
+      const displayHeard = lastWord || newSpeech;
       heardText.value = displayHeard;
       if (feedbackState.value === 'retry') {
         feedbackState.value = 'listening';
@@ -375,19 +350,18 @@ const startRecognitionSession = () => {
           window.clearTimeout(retryJudgeTimer);
           retryJudgeTimer = undefined;
         }
-        markCurrentSpeechConsumed(latestFullTranscript);
+        transcriptAtCardStart = latestRawTranscript;
         handlePronunciationSuccess(displayHeard);
       } else {
-        // Wait briefly after user finishes speaking this attempt before showing "Intenta de nuevo"
         if (retryJudgeTimer) {
           window.clearTimeout(retryJudgeTimer);
         }
         retryJudgeTimer = window.setTimeout(() => {
           if (feedbackState.value !== 'success' && currentWord.value) {
-            markCurrentSpeechConsumed(latestFullTranscript);
+            transcriptAtCardStart = latestRawTranscript;
             handlePronunciationRetry(displayHeard);
           }
-        }, 750);
+        }, 850);
       }
     };
 
@@ -404,25 +378,43 @@ const startRecognitionSession = () => {
 
     recognition.onend = () => {
       isListening.value = false;
-      if (micEnabled.value) {
-        reconnectTimer = window.setTimeout(() => {
-          if (micEnabled.value) {
-            startRecognitionSession();
+      if (micEnabled.value && recognition) {
+        try {
+          // Reuse the same gesture-blessed recognition instance first (required by iOS Safari)
+          latestRawTranscript = '';
+          transcriptAtCardStart = '';
+          recognition.start();
+          reconnectTimer = window.setTimeout(() => {
+            if (!isListening.value) {
+              micEnabled.value = false;
+              if (feedbackState.value === 'listening') {
+                feedbackState.value = 'idle';
+              }
+            }
+          }, 500);
+        } catch {
+          micEnabled.value = false;
+          if (feedbackState.value === 'listening') {
+            feedbackState.value = 'idle';
           }
-        }, 120);
-      } else if (feedbackState.value === 'listening') {
-        feedbackState.value = 'idle';
+        }
+      } else {
+        micEnabled.value = false;
+        if (feedbackState.value === 'listening') {
+          feedbackState.value = 'idle';
+        }
       }
     };
 
     recognition.start();
   } catch {
+    micEnabled.value = false;
     isListening.value = false;
   }
 };
 
 const toggleMic = () => {
-  if (micEnabled.value) {
+  if (micEnabled.value && isListening.value) {
     stopContinuousMic();
   } else {
     micEnabled.value = true;
@@ -878,7 +870,7 @@ onUnmounted(() => {
           @click="handleCardTap"
           :class="[
             'duo-front-card',
-            micEnabled ? 'is-listening' : '',
+            isListening ? 'is-listening' : '',
             feedbackState === 'success' ? 'is-success' : '',
             feedbackState === 'retry' ? 'is-retry' : '',
           ]"
@@ -913,7 +905,7 @@ onUnmounted(() => {
             <MicOff :size="14" />
             <span>{{ errorMessage }}</span>
           </span>
-          <span v-else-if="micEnabled && heardText" class="card-feedback-pill is-listening">
+          <span v-else-if="isListening && heardText" class="card-feedback-pill is-listening">
             <span>{{ heardText }}</span>
           </span>
         </button>
@@ -927,15 +919,15 @@ onUnmounted(() => {
           @click="toggleMic"
           :class="[
             'duo-mic-btn',
-            micEnabled ? 'is-listening' : '',
+            isListening ? 'is-listening' : '',
             feedbackState === 'success' ? 'is-success' : '',
           ]"
-          :aria-label="micEnabled ? 'Desactivar micrófono continuo' : 'Activar micrófono continuo'"
+          :aria-label="isListening ? 'Desactivar micrófono continuo' : 'Activar micrófono continuo'"
         >
           <CheckCircle2 v-if="feedbackState === 'success'" :size="26" :stroke-width="2.5" />
           <Mic v-else :size="26" :stroke-width="2.4" />
           <span class="mic-btn-label">
-            {{ micEnabled ? 'Escuchando continuo' : 'Activar micrófono' }}
+            {{ isListening ? 'Escuchando continuo' : 'Activar micrófono' }}
           </span>
         </button>
 
