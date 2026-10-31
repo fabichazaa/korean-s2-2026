@@ -5,7 +5,7 @@ export function speakKorean(text: string, onEnd?: () => void): void {
     if (onEnd) onEnd();
     return;
   }
-  
+
   try {
     window.speechSynthesis.cancel();
     // Clean slash alternatives so TTS reads naturally
@@ -13,7 +13,7 @@ export function speakKorean(text: string, onEnd?: () => void): void {
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'ko-KR';
     utterance.rate = 0.88; // Slower rate for clear language learning pronunciation
-    
+
     const voices = window.speechSynthesis.getVoices();
     const koreanVoice = voices.find((v) => v.lang.toLowerCase().includes('ko'));
     if (koreanVoice) {
@@ -32,7 +32,7 @@ export function speakKorean(text: string, onEnd?: () => void): void {
       utterance.onend = done;
       utterance.onerror = done;
     }
-    
+
     window.speechSynthesis.speak(utterance);
   } catch (err) {
     console.warn('Speech synthesis not available or error occurred:', err);
@@ -233,6 +233,8 @@ export function checkKoreanPronunciationMatch(
   };
 }
 
+let sharedAudioCtx: AudioContext | null = null;
+
 // Synthesized Duolingo-like sound effects using Web Audio API (no external assets needed)
 export function playGameSound(type: 'correct' | 'streak' | 'wrong' | 'complete'): void {
   if (typeof window === 'undefined') return;
@@ -240,7 +242,13 @@ export function playGameSound(type: 'correct' | 'streak' | 'wrong' | 'complete')
   if (!AudioCtx) return;
 
   try {
-    const ctx = new AudioCtx();
+    if (!sharedAudioCtx) {
+      sharedAudioCtx = new AudioCtx();
+    }
+    if (sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume();
+    }
+    const ctx = sharedAudioCtx;
     const now = ctx.currentTime;
 
     if (type === 'correct') {

@@ -7,7 +7,6 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
-  Volume2,
   CheckCircle2,
   AlertCircle,
   Trophy,
@@ -17,7 +16,6 @@ import {
 import type { Word, WordCategory } from '../types';
 import { WORDS, CATEGORY_ORDER, CATEGORY_TITLES, shuffleWords } from '../data/words';
 import {
-  speakKorean,
   isSpeechRecognitionSupported,
   checkKoreanPronunciationMatch,
   playGameSound,
@@ -68,7 +66,7 @@ const totalWordsAllTime = ref(0);
 const lastPointsEarned = ref(0);
 
 // Continuous Voice State
-const micEnabled = ref(false); // Stays true once pressed until user turns it off
+const micEnabled = ref(false);
 const isListening = ref(false);
 const feedbackState = ref<FeedbackState>('idle');
 const heardText = ref('');
@@ -88,9 +86,14 @@ const loadingLeaderboard = ref(false);
 let recognition: any = null;
 let advanceTimer: number | undefined;
 let reconnectTimer: number | undefined;
-let ttsMuteUntil = 0;
-let consumedResultCount = 0;
-let currentResultsLength = 0;
+let retryJudgeTimer: number | undefined;
+
+// Cumulative transcript tracking (prevents previous card's speech from bleeding into new card)
+let latestFullTranscript = '';
+let consumedFullTranscript = '';
+let consumedWordList: string[] = [];
+let previousWord: Word | null = null;
+let cardSwitchedAt = 0;
 
 const categoryCounts = computed(() => {
   const counts: { category: WordCategory | 'all'; label: string; count: number }[] = [
@@ -152,30 +155,65 @@ const effectivePlayerName = computed(() => {
   return 'Estudiante';
 });
 
-const buildDeck = () => {
-  deck.value = shuffleWords(filteredPool.value);
-  currentIndex.value = 0;
-  resetCardState();
+// Mark all speech received up to this moment as already consumed
+const markCurrentSpeechConsumed = (snapshot?: string) => {
+  const text = (snapshot ?? latestFullTranscript).trim();
+  consumedFullTranscript = text;
+  consumedWordList = text ? text.split(/\s+/).filter(Boolean) : [];
 };
 
-const getFinalizedResultCount = (results: any): number => {
-  if (!results) return 0;
-  let count = 0;
-  for (let i = 0; i < results.length; i++) {
-    if (results[i]?.isFinal) {
-      count = i + 1;
-    }
+// Extract only the NEW words spoken after consumedFullTranscript
+const extractUnreadSpeech = (fullText: string): string => {
+  const cleanFull = fullText.trim();
+  if (!cleanFull) return '';
+  if (!consumedFullTranscript) return cleanFull;
+  if (cleanFull === consumedFullTranscript) return '';
+
+  // Case 1: cleanFull starts with consumedFullTranscript
+  if (cleanFull.startsWith(consumedFullTranscript)) {
+    return cleanFull.slice(consumedFullTranscript.length).trim();
   }
-  return count;
+
+  // Case 2: iOS Safari slightly modified an earlier character in the cumulative buffer
+  const currentWords = cleanFull.split(/\s+/).filter(Boolean);
+  if (currentWords.length > consumedWordList.length) {
+    return currentWords.slice(consumedWordList.length).join(' ').trim();
+  }
+
+  // Case 3: Same number of words, check if the last word itself changed
+  if (
+    currentWords.length > 0 &&
+    consumedWordList.length > 0 &&
+    currentWords[currentWords.length - 1] !== consumedWordList[consumedWordList.length - 1]
+  ) {
+    return currentWords[currentWords.length - 1];
+  }
+
+  return '';
 };
 
-const resetCardState = () => {
+const clearTimers = () => {
   if (advanceTimer) {
     window.clearTimeout(advanceTimer);
     advanceTimer = undefined;
   }
-  // Ignore finalized speech recognition results from the previous card
-  consumedResultCount = currentResultsLength;
+  if (retryJudgeTimer) {
+    window.clearTimeout(retryJudgeTimer);
+    retryJudgeTimer = undefined;
+  }
+};
+
+const buildDeck = () => {
+  deck.value = shuffleWords(filteredPool.value);
+  currentIndex.value = 0;
+  previousWord = null;
+  resetCardState();
+};
+
+const resetCardState = () => {
+  clearTimers();
+  markCurrentSpeechConsumed();
+  cardSwitchedAt = Date.now();
   hintRevealed.value = false;
   heardText.value = '';
   errorMessage.value = '';
@@ -207,6 +245,7 @@ const destroyRecognitionInstance = (useStop = false) => {
 
 const stopContinuousMic = () => {
   micEnabled.value = false;
+  clearTimers();
   destroyRecognitionInstance(true);
   if (feedbackState.value === 'listening') {
     feedbackState.value = 'idle';
@@ -239,13 +278,9 @@ const startRecognitionSession = () => {
   destroyRecognitionInstance(false);
 
   try {
-    if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
-    }
-
     recognition = new SpeechRecognitionCtor();
     recognition.lang = 'ko-KR';
-    recognition.continuous = true; // Keep listening across cards!
+    recognition.continuous = true;
     recognition.interimResults = true;
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -257,8 +292,9 @@ const startRecognitionSession = () => {
       }
     }
 
-    consumedResultCount = 0;
-    currentResultsLength = 0;
+    latestFullTranscript = '';
+    consumedFullTranscript = '';
+    consumedWordList = [];
     isListening.value = true;
     if (feedbackState.value !== 'success') {
       feedbackState.value = 'listening';
@@ -274,52 +310,84 @@ const startRecognitionSession = () => {
     };
 
     recognition.onresult = (event: any) => {
-      currentResultsLength = getFinalizedResultCount(event.results);
+      // Build full cumulative transcript across all result segments
+      const segments: string[] = [];
+      for (let i = 0; i < event.results.length; i++) {
+        const seg = event.results[i]?.[0]?.transcript;
+        if (seg) segments.push(seg.trim());
+      }
+      latestFullTranscript = segments.join(' ').trim();
 
-      // Ignore input while celebrating a match or while TTS audio is playing
-      if (
-        !currentWord.value ||
-        feedbackState.value === 'success' ||
-        Date.now() < ttsMuteUntil
-      ) {
-        consumedResultCount = currentResultsLength;
+      // If we are currently celebrating a correct answer, absorb any trailing speech events
+      if (!currentWord.value || feedbackState.value === 'success') {
+        markCurrentSpeechConsumed(latestFullTranscript);
         return;
       }
 
-      const startIdx = Math.min(
-        Math.max(event.resultIndex, consumedResultCount),
-         Math.max(0, event.results.length - 1)
-      );
-      const alternatives: string[] = [];
-      let isFinal = false;
+      const newSpeech = extractUnreadSpeech(latestFullTranscript);
+      if (!newSpeech) {
+        return;
+      }
 
-      for (let i = startIdx; i < event.results.length; i++) {
-        const res = event.results[i];
-        if (res.isFinal) isFinal = true;
-        for (let j = 0; j < res.length; j++) {
-          if (res[j]?.transcript) {
-            alternatives.push(res[j].transcript);
+      // Guard: if a late trailing event from the PREVIOUS card arrives right after card switch,
+      // absorb it silently so the old word never flashes on the new card!
+      if (
+        previousWord &&
+        Date.now() - cardSwitchedAt < 1800 &&
+        checkKoreanPronunciationMatch(previousWord, [newSpeech]).matched &&
+        !checkKoreanPronunciationMatch(currentWord.value, [newSpeech]).matched
+      ) {
+        markCurrentSpeechConsumed(latestFullTranscript);
+        return;
+      }
+
+      // Build candidate list: the new speech segment, its last word, and any alternative transcripts
+      const wordsInNewSpeech = newSpeech.split(/\s+/).filter(Boolean);
+      const lastSpokenWord =
+        wordsInNewSpeech.length > 0 ? wordsInNewSpeech[wordsInNewSpeech.length - 1] : newSpeech;
+
+      const candidates = new Set<string>([newSpeech, lastSpokenWord]);
+      const lastResult = event.results[event.results.length - 1];
+      if (lastResult) {
+        for (let j = 0; j < lastResult.length; j++) {
+          const alt = lastResult[j]?.transcript?.trim();
+          if (alt) {
+            const altNew = extractUnreadSpeech(alt) || alt.split(/\s+/).pop() || alt;
+            if (altNew) candidates.add(altNew);
           }
         }
       }
 
-      if (alternatives.length === 0) return;
-
-      // Clear previous retry banner as soon as new speech is detected
-      if (feedbackState.value === 'retry' && !isFinal) {
+      // Show only the latest spoken word/phrase on the card pill
+      const displayHeard = lastSpokenWord || newSpeech;
+      heardText.value = displayHeard;
+      if (feedbackState.value === 'retry') {
         feedbackState.value = 'listening';
       }
-      heardText.value = alternatives[alternatives.length - 1].trim() || alternatives[0].trim();
 
-      const matchResult = checkKoreanPronunciationMatch(currentWord.value, alternatives);
+      const matchResult = checkKoreanPronunciationMatch(
+        currentWord.value,
+        Array.from(candidates)
+      );
 
       if (matchResult.matched) {
-        consumedResultCount = event.results.length;
-        currentResultsLength = event.results.length;
-        handlePronunciationSuccess(matchResult.bestTranscript);
-      } else if (isFinal) {
-        consumedResultCount = getFinalizedResultCount(event.results);
-        handlePronunciationRetry(matchResult.bestTranscript);
+        if (retryJudgeTimer) {
+          window.clearTimeout(retryJudgeTimer);
+          retryJudgeTimer = undefined;
+        }
+        markCurrentSpeechConsumed(latestFullTranscript);
+        handlePronunciationSuccess(displayHeard);
+      } else {
+        // Wait briefly after user finishes speaking this attempt before showing "Intenta de nuevo"
+        if (retryJudgeTimer) {
+          window.clearTimeout(retryJudgeTimer);
+        }
+        retryJudgeTimer = window.setTimeout(() => {
+          if (feedbackState.value !== 'success' && currentWord.value) {
+            markCurrentSpeechConsumed(latestFullTranscript);
+            handlePronunciationRetry(displayHeard);
+          }
+        }, 750);
       }
     };
 
@@ -329,22 +397,19 @@ const startRecognitionSession = () => {
         isListening.value = false;
         feedbackState.value = 'error';
         errorMessage.value = 'Permite el acceso al micrófono en tu navegador.';
-      } else if (event.error === 'no-speech') {
-        // Ignore no-speech in continuous mode; onend will seamlessly reconnect
-      } else if (event.error !== 'aborted') {
+      } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
         isListening.value = false;
       }
     };
 
     recognition.onend = () => {
       isListening.value = false;
-      // Automatically keep listening if the user hasn't turned the mic off!
       if (micEnabled.value) {
         reconnectTimer = window.setTimeout(() => {
           if (micEnabled.value) {
             startRecognitionSession();
           }
-        }, 140);
+        }, 120);
       } else if (feedbackState.value === 'listening') {
         feedbackState.value = 'idle';
       }
@@ -366,7 +431,6 @@ const toggleMic = () => {
 };
 
 const handlePronunciationSuccess = (transcript: string) => {
-  // Keep micEnabled true and DO NOT stop recognition!
   feedbackState.value = 'success';
   heardText.value = transcript;
 
@@ -413,10 +477,11 @@ const handlePronunciationRetry = (transcript: string) => {
 };
 
 const nextCard = (fromSuccess = false) => {
-  // Notice: we do NOT stop the microphone when changing cards!
   if (!fromSuccess) {
     streak.value = 0;
   }
+
+  previousWord = currentWord.value;
 
   if (currentIndex.value + 1 >= deck.value.length) {
     deck.value = shuffleWords(filteredPool.value);
@@ -428,28 +493,10 @@ const nextCard = (fromSuccess = false) => {
   resetCardState();
 };
 
+// Pure visual hint toggle: never touches audio or microphone so mic never glitches!
 const handleCardTap = () => {
   if (!currentWord.value) return;
-  hintRevealed.value = true;
-  heardText.value = '';
-  errorMessage.value = '';
-  if (feedbackState.value === 'retry' || feedbackState.value === 'error') {
-    feedbackState.value = micEnabled.value ? 'listening' : 'idle';
-  }
-
-  // Pause mic while TTS speaks so browser audio output doesn't freeze SpeechRecognition,
-  // then restart a fresh recognition session as soon as TTS finishes
-  const wasMicEnabled = micEnabled.value;
-  if (wasMicEnabled) {
-    destroyRecognitionInstance(false);
-  }
-  ttsMuteUntil = Date.now() + 300;
-  speakKorean(currentWord.value.present || currentWord.value.korean, () => {
-    ttsMuteUntil = Date.now() + 150;
-    if (micEnabled.value) {
-      startRecognitionSession();
-    }
-  });
+  hintRevealed.value = !hintRevealed.value;
 };
 
 const selectCategory = (cat: WordCategory | 'all') => {
@@ -534,7 +581,6 @@ const fetchLeaderboard = async () => {
   loadingLeaderboard.value = true;
   const entriesMap = new Map<string, LeaderboardEntry>();
 
-  // Always include current user's live stats
   const myId = effectivePlayerId.value;
   entriesMap.set(myId, {
     playerId: myId,
@@ -547,7 +593,6 @@ const fetchLeaderboard = async () => {
 
   if (isSupabaseConfigured) {
     try {
-      // 1. Try dedicated voice_leaderboard table
       const { data: lbData, error: lbError } = await supabase
         .from('voice_leaderboard')
         .select('player_id, player_name, words_correct, xp, best_streak')
@@ -572,7 +617,6 @@ const fetchLeaderboard = async () => {
           });
         }
       } else {
-        // 2. Fallback: read from user_progress table
         const { data: progData } = await supabase
           .from('user_progress')
           .select('*')
@@ -610,7 +654,7 @@ const fetchLeaderboard = async () => {
         }
       }
     } catch {
-      // Ignore network/table errors and show available entries
+      // Ignore network/table errors
     }
   }
 
@@ -621,7 +665,6 @@ const fetchLeaderboard = async () => {
 };
 
 const syncLeaderboardScore = async () => {
-  // Update local leaderboard immediately for instant UI responsiveness
   const myId = effectivePlayerId.value;
   const existingIdx = leaderboard.value.findIndex((e) => e.playerId === myId || e.isCurrentUser);
   const myEntry: LeaderboardEntry = {
@@ -655,7 +698,7 @@ const syncLeaderboardScore = async () => {
       { onConflict: 'player_id' }
     );
   } catch {
-    // Table might not exist yet; user_progress fallback still works
+    // Fallback handled
   }
 };
 
@@ -666,7 +709,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
   if (event.code === 'Space') {
     event.preventDefault();
     toggleMic();
-  } else if (event.key.toLowerCase() === 'l') {
+  } else if (event.key.toLowerCase() === 'h') {
     event.preventDefault();
     handleCardTap();
   } else if (event.key === 'ArrowRight') {
@@ -704,7 +747,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopContinuousMic();
-  if (advanceTimer) window.clearTimeout(advanceTimer);
+  clearTimers();
   window.removeEventListener('keydown', handleKeyDown);
 });
 </script>
@@ -764,7 +807,7 @@ onUnmounted(() => {
         <div class="stack-layer layer-2" />
         <div class="stack-layer layer-1" />
 
-        <!-- Front Active Card (Tap card to hear / reveal Hangul hint) -->
+        <!-- Front Active Card (Tap card to reveal/hide Hangul hint without touching audio) -->
         <button
           type="button"
           @click="handleCardTap"
@@ -774,13 +817,8 @@ onUnmounted(() => {
             feedbackState === 'success' ? 'is-success' : '',
             feedbackState === 'retry' ? 'is-retry' : '',
           ]"
-          title="Toca la tarjeta para escuchar y ver en coreano"
+          title="Toca la tarjeta para ver u ocultar la pista en coreano"
         >
-          <!-- Subtle speaker hint in top-right corner of card -->
-          <span class="card-audio-corner">
-            <Volume2 :size="16" />
-          </span>
-
           <!-- Main Spanish Word Centered -->
           <span class="duo-card-word">
             {{ currentWord.spanish }}
@@ -1162,18 +1200,6 @@ onUnmounted(() => {
 .duo-front-card.is-retry {
   border-color: #f59e0b;
   border-bottom-color: #d97706;
-}
-
-.card-audio-corner {
-  position: absolute;
-  top: 16px;
-  right: 18px;
-  color: #b4bcd4;
-  transition: color 0.18s ease;
-}
-
-.duo-front-card:hover .card-audio-corner {
-  color: var(--primary);
 }
 
 .duo-card-word {
