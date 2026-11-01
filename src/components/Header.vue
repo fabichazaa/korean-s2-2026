@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Target, Mic, BookOpen, Clock, User, LogOut } from 'lucide-vue-next';
+import { Target, Mic, PenLine, BookOpen, Clock, User, LogOut } from 'lucide-vue-next';
 
-export type AppTab = 'study' | 'voice' | 'numbers' | 'vocabulary';
+export type AppTab = 'study' | 'voice' | 'write' | 'numbers' | 'vocabulary';
 
 defineProps<{
   activeTab: AppTab;
@@ -78,6 +78,16 @@ const emit = defineEmits<{
           <Mic :size="15" :stroke-width="2.2" />
           <span class="tab-label-desktop">Juego de Voz</span>
           <span class="tab-label-mobile">Voz</span>
+        </button>
+
+        <button
+          type="button"
+          @click="emit('update:activeTab', 'write')"
+          data-testid="button-nav-write"
+          :class="['nav-btn', activeTab === 'write' ? 'is-active' : '']"
+        >
+          <PenLine :size="15" :stroke-width="2.2" />
+          <span>Escribir</span>
         </button>
 
         <button
@@ -349,6 +359,20 @@ const emit = defineEmits<{
   color: var(--muted-foreground);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
+}
+
+@media (max-width: 639px) {
+  .nav-btn {
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.4rem 0.2rem;
+    font-size: 0.68rem;
+    border-radius: 1rem;
+    min-width: 0;
+  }
+  .nav-pill-container {
+    border-radius: 1.25rem;
+  }
 }
 
 @media (min-width: 640px) {

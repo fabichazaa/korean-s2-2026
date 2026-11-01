@@ -5,6 +5,7 @@ import { WORDS, STORAGE_KEY, shuffleWords, CATEGORY_ORDER, CATEGORY_TITLES } fro
 import Header, { type AppTab } from './components/Header.vue';
 import StudyView from './components/StudyView.vue';
 import VoiceGameView from './components/VoiceGameView.vue';
+import WritingGameView from './components/WritingGameView.vue';
 import VocabularyView from './components/VocabularyView.vue';
 import TimeNumbersView from './components/TimeNumbersView.vue';
 import LoadingState from './components/LoadingState.vue';
@@ -335,6 +336,17 @@ const markWordKnownFromGame = (wordId: string, earnedXp = 10) => {
   };
 };
 
+const markWordWrittenFromGame = (wordId: string, earnedXp = 10) => {
+  if (!knownIds.value.includes(wordId)) {
+    knownIds.value = [...knownIds.value, wordId];
+  }
+  reviewCounts.value = {
+    ...reviewCounts.value,
+    __write_correct__: (reviewCounts.value.__write_correct__ ?? 0) + 1,
+    __write_xp__: (reviewCounts.value.__write_xp__ ?? 0) + earnedXp,
+  };
+};
+
 const handleUpdatePlayerName = async (newName: string) => {
   reviewCounts.value = {
     ...reviewCounts.value,
@@ -481,6 +493,13 @@ const onKeyDown = (event: KeyboardEvent) => {
           :voice-correct-count="reviewCounts.__voice_correct__ ?? 0"
           @mark-known="markWordKnownFromGame"
           @update-player-name="handleUpdatePlayerName"
+        />
+
+        <!-- Hangul Writing Game (on-screen Jamo pad) -->
+        <WritingGameView
+          v-else-if="activeTab === 'write'"
+          :known-ids="knownIds"
+          @mark-known="markWordWrittenFromGame"
         />
 
         <!-- Time & Numbers Interactive Trainer -->
