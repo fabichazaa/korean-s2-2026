@@ -7,6 +7,7 @@ export type WordCategory =
   | 'position'
   | 'object'
   | 'verb'
+  | 'activity'
   | 'adjective'
   | 'counter'
   | 'calendar'
@@ -14,6 +15,7 @@ export type WordCategory =
 
 export interface VerbForms {
   present?: string;
+  past?: string;
   negative?: string;
   honorific?: string;
   pronunciation?: string;

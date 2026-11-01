@@ -331,7 +331,7 @@ const handleToggleKnownBadge = (event: Event) => {
                 v-if="activeWord.verbForms || activeWord.present"
                 class="mt-3 sm:mt-4 conjugations-container"
               >
-                <div class="grid grid-cols-1 gap-1.5 xs:grid-cols-3 sm:grid-cols-3 sm:gap-2">
+                <div class="grid grid-cols-2 gap-1.5 sm:gap-2">
                   <!-- Presente -->
                   <div
                     v-if="activeWord.verbForms?.present || activeWord.present"
@@ -347,6 +347,27 @@ const handleToggleKnownBadge = (event: Event) => {
                       type="button"
                       @click="handlePlayAudio(activeWord.verbForms?.present || activeWord.present!, $event)"
                       class="cell-audio-btn text-[#aaa6d1] hover:text-white shrink-0"
+                      title="Escuchar"
+                    >
+                      <Volume2 :size="14" />
+                    </button>
+                  </div>
+
+                  <!-- Pasado -았/었어요 -->
+                  <div
+                    v-if="activeWord.verbForms?.past"
+                    class="conjugation-cell"
+                  >
+                    <div class="min-w-0 pr-1">
+                      <span class="nuri-mono cell-label text-[#fcd34d]">Pasado</span>
+                      <span class="cell-val text-[#fde68a] truncate block">
+                        {{ activeWord.verbForms.past }}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      @click="handlePlayAudio(activeWord.verbForms.past, $event)"
+                      class="cell-audio-btn text-[#fcd34d] hover:text-white shrink-0"
                       title="Escuchar"
                     >
                       <Volume2 :size="14" />

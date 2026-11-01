@@ -136,21 +136,29 @@ function levenshteinDistance(a: string, b: string): number {
 export function getAcceptedTargetsForWord(word: Word): string[] {
   const targets = new Set<string>();
 
-  // Split "/" alternatives (e.g. "아래 / 밑" -> ["아래", "밑"])
-  word.korean.split('/').forEach((part) => {
-    const clean = normalizeKorean(part);
-    if (clean) targets.add(clean);
-  });
+  // For verbs/adjectives both the infinitive (가다) and the polite present (가요)
+  // are accepted. Phrases with an object particle (영화를 보다) are also accepted
+  // without it (영화 봐요 / 수영해요), as people (and STT) often drop it.
+  const addForm = (form?: string) => {
+    if (!form) return;
+    const clean = normalizeKorean(form);
+    if (!clean) return;
+    targets.add(clean);
+    const tokens = form.trim().split(/\s+/);
+    if (tokens.length > 1 && /[을를이가]$/.test(tokens[0])) {
+      const withoutParticle = normalizeKorean(
+        [tokens[0].replace(/[을를이가]$/, ''), ...tokens.slice(1)].join('')
+      );
+      if (withoutParticle) targets.add(withoutParticle);
+    }
+  };
 
-  if (word.present) {
-    targets.add(normalizeKorean(word.present));
-  }
-  if (word.verbForms?.present) {
-    targets.add(normalizeKorean(word.verbForms.present));
-  }
-  if (word.verbForms?.honorific) {
-    targets.add(normalizeKorean(word.verbForms.honorific));
-  }
+  // Split "/" alternatives (e.g. "아래 / 밑" -> ["아래", "밑"])
+  word.korean.split('/').forEach((part) => addForm(part));
+
+  addForm(word.present);
+  addForm(word.verbForms?.present);
+  addForm(word.verbForms?.honorific);
   if (word.verbForms?.pronunciation) {
     word.verbForms.pronunciation.split('→').forEach((part) => {
       const clean = normalizeKorean(part);

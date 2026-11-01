@@ -55,6 +55,11 @@ export const WORDS: Word[] = [
   { id: 'yeonghwagwan', korean: '영화관', spanish: 'Cine / Sala de cine', category: 'place', note: 'yeong-hwa-gwan' },
   { id: 'noraebang', korean: '노래방', spanish: 'Karaoke', category: 'place' },
   { id: 'jiha', korean: '지하', spanish: 'Subsuelo', category: 'place' },
+  { id: 'miyongsil', korean: '미용실', spanish: 'Peluquería / Salón de belleza', category: 'place', note: 'mi-yong-sil' },
+  { id: 'norigongwon', korean: '놀이공원', spanish: 'Parque de diversiones', category: 'place', note: 'no-ri-gong-won' },
+  { id: 'doseogwan', korean: '도서관', spanish: 'Biblioteca', category: 'place', note: 'do-seo-gwan' },
+  { id: 'bangmulgwan', korean: '박물관', spanish: 'Museo', category: 'place', note: 'Se pronuncia [방물관] bang-mul-gwan' },
+  { id: 'suyeongjang', korean: '수영장', spanish: 'Piscina / Natatorio', category: 'place', note: 'su-yeong-jang' },
 
   // --- COMIDA Y BEBIDA (음식 및 음료) ---
   { id: 'eumsik', korean: '음식', spanish: 'Comida', category: 'food' },
@@ -138,6 +143,12 @@ export const WORDS: Word[] = [
   { id: 'undong-sub', korean: '운동', spanish: 'Ejercicio', category: 'object' },
   { id: 'geim', korean: '게임', spanish: 'Juego', category: 'object' },
   { id: 'jeonhwabeonho', korean: '전화번호', spanish: 'Número de teléfono', category: 'object' },
+  { id: 'suyeong', korean: '수영', spanish: 'Natación', category: 'object', note: 'su-yeong' },
+  { id: 'syoping', korean: '쇼핑', spanish: 'Compras (shopping)', category: 'object', note: 'syo-ping' },
+  { id: 'jajeongeo', korean: '자전거', spanish: 'Bicicleta', category: 'object', note: 'ja-jeon-geo' },
+  { id: 'deurama', korean: '드라마', spanish: 'Serie / Dorama / Telenovela', category: 'object', note: 'deu-ra-ma' },
+  { id: 'norae', korean: '노래', spanish: 'Canción', category: 'object', note: 'no-rae' },
+  { id: 'hwaldong', korean: '활동', spanish: 'Actividad', category: 'object', note: 'hwal-dong' },
 
   // --- CONTADORES Y UNIDADES NUMÉRICAS (단위 및 수사) ---
   { id: 'gae', korean: '개', spanish: 'Unidades / Cosas (contador general)', category: 'counter', note: 'gae - Usa números Nativos: 한 개, 두 개...' },
@@ -158,7 +169,7 @@ export const WORDS: Word[] = [
     spanish: 'Ir',
     category: 'verb',
     present: '가요',
-    verbForms: { present: '가요', negative: '안 가요', honorific: '가세요' },
+    verbForms: { present: '가요', past: '갔어요', negative: '안 가요', honorific: '가세요' },
   },
   {
     id: 'oda',
@@ -166,7 +177,7 @@ export const WORDS: Word[] = [
     spanish: 'Venir',
     category: 'verb',
     present: '와요',
-    verbForms: { present: '와요', negative: '안 와요', honorific: '오세요' },
+    verbForms: { present: '와요', past: '왔어요', negative: '안 와요', honorific: '오세요' },
   },
   {
     id: 'boda',
@@ -174,7 +185,7 @@ export const WORDS: Word[] = [
     spanish: 'Ver / Mirar',
     category: 'verb',
     present: '봐요',
-    verbForms: { present: '봐요', negative: '안 봐요', honorific: '보세요' },
+    verbForms: { present: '봐요', past: '봤어요', negative: '안 봐요', honorific: '보세요' },
   },
   {
     id: 'jada',
@@ -182,7 +193,7 @@ export const WORDS: Word[] = [
     spanish: 'Dormir',
     category: 'verb',
     present: '자요',
-    verbForms: { present: '자요', negative: '안 자요', honorific: '주무세요' },
+    verbForms: { present: '자요', past: '잤어요', negative: '안 자요', honorific: '주무세요' },
     note: 'Honorífico irregular: 주무세요',
   },
   {
@@ -191,7 +202,7 @@ export const WORDS: Word[] = [
     spanish: 'Comer',
     category: 'verb',
     present: '먹어요',
-    verbForms: { present: '먹어요', negative: '안 먹어요', honorific: '드세요' },
+    verbForms: { present: '먹어요', past: '먹었어요', negative: '안 먹어요', honorific: '드세요' },
     note: 'Honorífico irregular: 드세요',
   },
   {
@@ -200,7 +211,7 @@ export const WORDS: Word[] = [
     spanish: 'Beber / Tomar',
     category: 'verb',
     present: '마셔요',
-    verbForms: { present: '마셔요', negative: '안 마셔요', honorific: '드세요' },
+    verbForms: { present: '마셔요', past: '마셨어요', negative: '안 마셔요', honorific: '드세요' },
     note: 'Honorífico irregular: 드세요',
   },
   {
@@ -209,7 +220,7 @@ export const WORDS: Word[] = [
     spanish: 'Escuchar / Oír',
     category: 'verb',
     present: '들어요',
-    verbForms: { present: '들어요', negative: '안 들어요', honorific: '들으세요', pronunciation: '드러요' },
+    verbForms: { present: '들어요', past: '들었어요', negative: '안 들어요', honorific: '들으세요', pronunciation: '드러요' },
     note: 'Irregular ㄷ: 듣다 → 들어요 [드러요]',
   },
   {
@@ -218,7 +229,7 @@ export const WORDS: Word[] = [
     spanish: 'Comprar',
     category: 'verb',
     present: '사요',
-    verbForms: { present: '사요', negative: '안 사요', honorific: '사세요' },
+    verbForms: { present: '사요', past: '샀어요', negative: '안 사요', honorific: '사세요' },
   },
   {
     id: 'ikda',
@@ -226,7 +237,7 @@ export const WORDS: Word[] = [
     spanish: 'Leer',
     category: 'verb',
     present: '읽어요',
-    verbForms: { present: '읽어요', negative: '안 읽어요', honorific: '읽으세요', pronunciation: '익따 → 일거요' },
+    verbForms: { present: '읽어요', past: '읽었어요', negative: '안 읽어요', honorific: '읽으세요', pronunciation: '익따 → 일거요' },
     note: 'Pronunciación: 읽다 [익따], 읽어요 [일거요]',
   },
   {
@@ -235,7 +246,7 @@ export const WORDS: Word[] = [
     spanish: 'Aprender',
     category: 'verb',
     present: '배워요',
-    verbForms: { present: '배워요', negative: '안 배워요', honorific: '배우세요' },
+    verbForms: { present: '배워요', past: '배웠어요', negative: '안 배워요', honorific: '배우세요' },
   },
   {
     id: 'gareuchida',
@@ -243,7 +254,7 @@ export const WORDS: Word[] = [
     spanish: 'Enseñar',
     category: 'verb',
     present: '가르쳐요',
-    verbForms: { present: '가르쳐요', negative: '안 가르쳐요', honorific: '가르치세요' },
+    verbForms: { present: '가르쳐요', past: '가르쳤어요', negative: '안 가르쳐요', honorific: '가르치세요' },
   },
   {
     id: 'mannada',
@@ -251,7 +262,7 @@ export const WORDS: Word[] = [
     spanish: 'Ver a alguien / Encontrarse',
     category: 'verb',
     present: '만나요',
-    verbForms: { present: '만나요', negative: '안 만나요', honorific: '만나세요' },
+    verbForms: { present: '만나요', past: '만났어요', negative: '안 만나요', honorific: '만나세요' },
   },
   {
     id: 'joh-ahada',
@@ -259,7 +270,7 @@ export const WORDS: Word[] = [
     spanish: 'Gustar',
     category: 'verb',
     present: '좋아해요',
-    verbForms: { present: '좋아해요', negative: '안 좋아해요', pronunciation: '조아해요' },
+    verbForms: { present: '좋아해요', past: '좋아했어요', negative: '안 좋아해요', pronunciation: '조아해요' },
     note: 'Pronunciación: 좋아해요 [조아해요]',
   },
   {
@@ -268,7 +279,7 @@ export const WORDS: Word[] = [
     spanish: 'Hacer',
     category: 'verb',
     present: '해요',
-    verbForms: { present: '해요', negative: '안 해요', honorific: '하세요' },
+    verbForms: { present: '해요', past: '했어요', negative: '안 해요', honorific: '하세요' },
   },
   {
     id: 'saranghada',
@@ -276,7 +287,7 @@ export const WORDS: Word[] = [
     spanish: 'Amar',
     category: 'verb',
     present: '사랑해요',
-    verbForms: { present: '사랑해요', negative: '안 사랑해요', honorific: '사랑하세요' },
+    verbForms: { present: '사랑해요', past: '사랑했어요', negative: '안 사랑해요', honorific: '사랑하세요' },
   },
   {
     id: 'malhada',
@@ -284,7 +295,7 @@ export const WORDS: Word[] = [
     spanish: 'Hablar / Decir',
     category: 'verb',
     present: '말해요',
-    verbForms: { present: '말해요', negative: '말 안 해요', honorific: '말하세요' },
+    verbForms: { present: '말해요', past: '말했어요', negative: '말 안 해요', honorific: '말하세요' },
     note: 'Negación: 말 안 해요 (separa 하다)',
   },
   {
@@ -293,7 +304,7 @@ export const WORDS: Word[] = [
     spanish: 'Trabajar',
     category: 'verb',
     present: '일해요',
-    verbForms: { present: '일해요', negative: '일 안 해요', honorific: '일하세요' },
+    verbForms: { present: '일해요', past: '일했어요', negative: '일 안 해요', honorific: '일하세요' },
     note: 'Negación: 일 안 해요',
   },
   {
@@ -302,7 +313,7 @@ export const WORDS: Word[] = [
     spanish: 'Estudiar',
     category: 'verb',
     present: '공부해요',
-    verbForms: { present: '공부해요', negative: '공부 안 해요', honorific: '공부하세요' },
+    verbForms: { present: '공부해요', past: '공부했어요', negative: '공부 안 해요', honorific: '공부하세요' },
     note: 'Negación: 공부 안 해요',
   },
   {
@@ -311,7 +322,7 @@ export const WORDS: Word[] = [
     spanish: 'Hacer ejercicio',
     category: 'verb',
     present: '운동해요',
-    verbForms: { present: '운동해요', negative: '운동 안 해요', honorific: '운동하세요' },
+    verbForms: { present: '운동해요', past: '운동했어요', negative: '운동 안 해요', honorific: '운동하세요' },
     note: 'Negación: 운동 안 해요',
   },
   {
@@ -320,7 +331,7 @@ export const WORDS: Word[] = [
     spanish: 'Llamar por teléfono',
     category: 'verb',
     present: '전화해요',
-    verbForms: { present: '전화해요', negative: '전화 안 해요', honorific: '전화하세요' },
+    verbForms: { present: '전화해요', past: '전화했어요', negative: '전화 안 해요', honorific: '전화하세요' },
     note: 'Negación: 전화 안 해요',
   },
   {
@@ -329,7 +340,7 @@ export const WORDS: Word[] = [
     spanish: 'Conversar / Charlar',
     category: 'verb',
     present: '이야기해요',
-    verbForms: { present: '이야기해요', negative: '이야기 안 해요', honorific: '이야기하세요' },
+    verbForms: { present: '이야기해요', past: '이야기했어요', negative: '이야기 안 해요', honorific: '이야기하세요' },
     note: 'Negación: 이야기 안 해요',
   },
   {
@@ -338,7 +349,7 @@ export const WORDS: Word[] = [
     spanish: 'Practicar',
     category: 'verb',
     present: '연습해요',
-    verbForms: { present: '연습해요', negative: '연습 안 해요', honorific: '연습하세요' },
+    verbForms: { present: '연습해요', past: '연습했어요', negative: '연습 안 해요', honorific: '연습하세요' },
     note: 'Negación: 연습 안 해요',
   },
   {
@@ -347,8 +358,104 @@ export const WORDS: Word[] = [
     spanish: 'Cocinar',
     category: 'verb',
     present: '요리해요',
-    verbForms: { present: '요리해요', negative: '요리 안 해요', honorific: '요리하세요' },
+    verbForms: { present: '요리해요', past: '요리했어요', negative: '요리 안 해요', honorific: '요리하세요' },
     note: 'Negación: 요리 안 해요',
+  },
+  {
+    id: 'sanchaekhada',
+    korean: '산책하다',
+    spanish: 'Pasear / Dar un paseo',
+    category: 'verb',
+    present: '산책해요',
+    verbForms: { present: '산책해요', past: '산책했어요', negative: '산책 안 해요', honorific: '산책하세요' },
+    note: 'Negación: 산책 안 해요',
+  },
+  {
+    id: 'gugyeonghada',
+    korean: '구경하다',
+    spanish: 'Mirar / Curiosear / Hacer turismo',
+    category: 'verb',
+    present: '구경해요',
+    verbForms: { present: '구경해요', past: '구경했어요', negative: '구경 안 해요', honorific: '구경하세요' },
+    note: 'Negación: 구경 안 해요',
+  },
+  {
+    id: 'tada',
+    korean: '타다',
+    spanish: 'Subir / Montar (vehículo)',
+    category: 'verb',
+    present: '타요',
+    verbForms: { present: '타요', past: '탔어요', negative: '안 타요', honorific: '타세요' },
+    note: 'Se usa con 을/를: 자전거를 타요, 버스를 타요',
+  },
+
+  // --- ACTIVIDADES DE FIN DE SEMANA (주말 활동) ---
+  {
+    id: 'yeonghwareul-boda',
+    korean: '영화를 보다',
+    spanish: 'Ver una película',
+    category: 'activity',
+    present: '영화를 봐요',
+    verbForms: { present: '영화를 봐요', past: '영화를 봤어요', negative: '영화를 안 봐요', honorific: '영화를 보세요' },
+  },
+  {
+    id: 'suyeongeul-hada',
+    korean: '수영을 하다',
+    spanish: 'Nadar',
+    category: 'activity',
+    present: '수영을 해요',
+    verbForms: { present: '수영을 해요', past: '수영을 했어요', negative: '수영을 안 해요', honorific: '수영을 하세요' },
+    note: 'También: 수영해요',
+  },
+  {
+    id: 'syopingeul-hada',
+    korean: '쇼핑을 하다',
+    spanish: 'Ir de compras',
+    category: 'activity',
+    present: '쇼핑을 해요',
+    verbForms: { present: '쇼핑을 해요', past: '쇼핑을 했어요', negative: '쇼핑을 안 해요', honorific: '쇼핑을 하세요' },
+    note: 'También: 쇼핑해요',
+  },
+  {
+    id: 'geimeul-hada',
+    korean: '게임을 하다',
+    spanish: 'Jugar videojuegos',
+    category: 'activity',
+    present: '게임을 해요',
+    verbForms: { present: '게임을 해요', past: '게임을 했어요', negative: '게임을 안 해요', honorific: '게임을 하세요' },
+  },
+  {
+    id: 'jajeongeoreul-tada',
+    korean: '자전거를 타다',
+    spanish: 'Andar en bicicleta',
+    category: 'activity',
+    present: '자전거를 타요',
+    verbForms: { present: '자전거를 타요', past: '자전거를 탔어요', negative: '자전거를 안 타요', honorific: '자전거를 타세요' },
+  },
+  {
+    id: 'deuramareul-boda',
+    korean: '드라마를 보다',
+    spanish: 'Ver una serie / dorama',
+    category: 'activity',
+    present: '드라마를 봐요',
+    verbForms: { present: '드라마를 봐요', past: '드라마를 봤어요', negative: '드라마를 안 봐요', honorific: '드라마를 보세요' },
+  },
+  {
+    id: 'noraereul-hada',
+    korean: '노래를 하다',
+    spanish: 'Cantar',
+    category: 'activity',
+    present: '노래를 해요',
+    verbForms: { present: '노래를 해요', past: '노래를 했어요', negative: '노래를 안 해요', honorific: '노래를 하세요' },
+    note: 'También: 노래해요',
+  },
+  {
+    id: 'chingureul-mannada',
+    korean: '친구를 만나다',
+    spanish: 'Encontrarse con un amigo/a',
+    category: 'activity',
+    present: '친구를 만나요',
+    verbForms: { present: '친구를 만나요', past: '친구를 만났어요', negative: '친구를 안 만나요', honorific: '친구를 만나세요' },
   },
 
   // --- ADJETIVOS DESCRIPTIVOS (형용사 - Irregulares en ㅂ) ---
@@ -358,7 +465,7 @@ export const WORDS: Word[] = [
     spanish: 'Hacer frío / Estar frío',
     category: 'adjective',
     present: '추워요',
-    verbForms: { present: '추워요', negative: '안 추워요' },
+    verbForms: { present: '추워요', past: '추웠어요', negative: '안 추워요' },
     note: 'Irregular ㅂ: 춥다 → 추워요',
   },
   {
@@ -367,7 +474,7 @@ export const WORDS: Word[] = [
     spanish: 'Hacer calor / Estar caluroso',
     category: 'adjective',
     present: '더워요',
-    verbForms: { present: '더워요', negative: '안 더워요' },
+    verbForms: { present: '더워요', past: '더웠어요', negative: '안 더워요' },
     note: 'Irregular ㅂ: 덥다 → 더워요',
   },
   {
@@ -376,7 +483,7 @@ export const WORDS: Word[] = [
     spanish: 'Es difícil',
     category: 'adjective',
     present: '어려워요',
-    verbForms: { present: '어려워요', negative: '안 어려워요' },
+    verbForms: { present: '어려워요', past: '어려웠어요', negative: '안 어려워요' },
     note: 'Irregular ㅂ: 어렵다 → 어려워요',
   },
   {
@@ -385,7 +492,7 @@ export const WORDS: Word[] = [
     spanish: 'Es fácil',
     category: 'adjective',
     present: '쉬워요',
-    verbForms: { present: '쉬워요', negative: '안 쉬워요' },
+    verbForms: { present: '쉬워요', past: '쉬웠어요', negative: '안 쉬워요' },
     note: 'Irregular ㅂ: 쉽다 → 쉬워요',
   },
   {
@@ -394,7 +501,7 @@ export const WORDS: Word[] = [
     spanish: 'Es liviano / ligero',
     category: 'adjective',
     present: '가벼워요',
-    verbForms: { present: '가벼워요', negative: '안 가벼워요' },
+    verbForms: { present: '가벼워요', past: '가벼웠어요', negative: '안 가벼워요' },
     note: 'Irregular ㅂ: 가볍다 → 가벼워요',
   },
   {
@@ -403,7 +510,7 @@ export const WORDS: Word[] = [
     spanish: 'Es pesado',
     category: 'adjective',
     present: '무거워요',
-    verbForms: { present: '무거워요', negative: '안 무거워요' },
+    verbForms: { present: '무거워요', past: '무거웠어요', negative: '안 무거워요' },
     note: 'Irregular ㅂ: 무겁다 → 무거워요',
   },
 
@@ -431,6 +538,7 @@ export const WORDS: Word[] = [
   { id: 'toyoil', korean: '토요일', spanish: 'Sábado', category: 'calendar', note: 'to-yo-il (Día de la Tierra ⛰️)' },
   { id: 'iryoil', korean: '일요일', spanish: 'Domingo', category: 'calendar', note: 'i-ryo-il (Día del Sol ☀️)' },
   { id: 'naeil', korean: '내일', spanish: 'Mañana (el día siguiente)', category: 'calendar', note: 'nae-il' },
+  { id: 'jumal', korean: '주말', spanish: 'Fin de semana', category: 'calendar', note: 'ju-mal · 주말에 뭐 해요? = ¿Qué hacés el fin de semana?' },
 
   // --- CLIMA, TEMPERATURA Y ESTACIONES (날씨와 계절) ---
   // Estado del tiempo
@@ -463,6 +571,7 @@ export const CATEGORY_LABELS: Record<WordCategory, string> = {
   position: 'ubicación',
   object: 'objetos',
   verb: 'verbos',
+  activity: 'actividades',
   adjective: 'adjetivos',
   counter: 'contadores',
   calendar: 'calendario',
@@ -478,6 +587,7 @@ export const CATEGORY_TITLES: Record<WordCategory, string> = {
   position: 'Ubicación y Posición (위치)',
   object: 'Objetos y Estudio (물건 및 학용품)',
   verb: 'Verbos (동사)',
+  activity: 'Actividades (주말 활동)',
   adjective: 'Adjetivos (형용사)',
   counter: 'Contadores y Unidades (단위 및 수사)',
   calendar: 'Meses y Días (날짜와 요일)',
@@ -487,6 +597,7 @@ export const CATEGORY_TITLES: Record<WordCategory, string> = {
 export const CATEGORY_ORDER: WordCategory[] = [
   'family',
   'verb',
+  'activity',
   'adjective',
   'food',
   'place',
