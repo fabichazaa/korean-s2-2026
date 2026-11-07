@@ -28,6 +28,13 @@ export const WORDS: Word[] = [
   { id: 'ireum', korean: '이름', spanish: 'Nombre', category: 'person' },
   { id: 'jigeop', korean: '직업', spanish: 'Profesión / Ocupación', category: 'person' },
   { id: 'jagisogae', korean: '자기소개', spanish: 'Autopresentación', category: 'person' },
+  { id: 'jeo-na', korean: '저 / 나', spanish: 'Yo', category: 'person', note: '저 = formal/humilde · 나 = informal' },
+  { id: 'ban-chingu', korean: '반 친구', spanish: 'Compañero/a de clase', category: 'person', note: 'ban chin-gu' },
+  { id: 'nugu', korean: '누구', spanish: 'Quién', category: 'person', note: 'nu-gu' },
+  { id: 'juno', korean: '주노', spanish: 'Juno (nombre propio)', category: 'person' },
+  { id: 'anna', korean: '안나', spanish: 'Anna (nombre propio)', category: 'person' },
+  { id: 'jaemin', korean: '재민', spanish: 'Jaemin (nombre propio)', category: 'person' },
+  { id: 'suji', korean: '수지', spanish: 'Suji (nombre propio)', category: 'person' },
 
   // --- PAÍSES Y CIUDADES (나라 및 도시) ---
   { id: 'nara', korean: '나라', spanish: 'País', category: 'country' },
@@ -60,6 +67,9 @@ export const WORDS: Word[] = [
   { id: 'doseogwan', korean: '도서관', spanish: 'Biblioteca', category: 'place', note: 'do-seo-gwan' },
   { id: 'bangmulgwan', korean: '박물관', spanish: 'Museo', category: 'place', note: 'Se pronuncia [방물관] bang-mul-gwan' },
   { id: 'suyeongjang', korean: '수영장', spanish: 'Piscina / Natatorio', category: 'place', note: 'su-yeong-jang' },
+  { id: 'eodi', korean: '어디', spanish: 'Dónde', category: 'place', note: 'eo-di · 어디에 가요? = ¿Adónde vas?' },
+  { id: 'hangang-gongwon', korean: '한강공원', spanish: 'Parque del Río Han', category: 'place', note: 'han-gang gong-won' },
+  { id: 'jejudo', korean: '제주도', spanish: 'Isla de Jeju', category: 'place', note: 'je-ju-do' },
 
   // --- COMIDA Y BEBIDA (음식 및 음료) ---
   { id: 'eumsik', korean: '음식', spanish: 'Comida', category: 'food' },
@@ -82,6 +92,12 @@ export const WORDS: Word[] = [
   { id: 'jjigae', korean: '찌개', spanish: 'Sopa / Guiso coreano', category: 'food' },
   { id: 'gimchi', korean: '김치', spanish: 'Kimchi', category: 'food', note: 'Comida fermentada tradicional' },
   { id: 'bulgogi', korean: '불고기', spanish: 'Bulgogi', category: 'food', note: 'Carne vacuna marinada' },
+  { id: 'bibimbap', korean: '비빔밥', spanish: 'Bibimbap', category: 'food', note: 'bi-bim-bap · Arroz mezclado con vegetales y carne' },
+  { id: 'tteokbokki', korean: '떡볶이', spanish: 'Tteokbokki', category: 'food', note: 'tteok-bo-kki · Pastelitos de arroz en salsa picante' },
+  { id: 'japchae', korean: '잡채', spanish: 'Japchae', category: 'food', note: 'jap-chae · Fideos de batata salteados con verduras' },
+  { id: 'jeomsim', korean: '점심', spanish: 'Almuerzo', category: 'food', note: 'jeom-sim' },
+  { id: 'jeonyeok', korean: '저녁', spanish: 'Cena / Tarde-noche', category: 'food', note: 'jeo-nyeok' },
+  { id: 'eumnyosu', korean: '음료수', spanish: 'Bebida / Refresco', category: 'food', note: 'eum-nyo-su (se pronuncia [음뇨수])' },
 
   // --- POSICIÓN Y UBICACIÓN (위치) ---
   { id: 'ap', korean: '앞', spanish: 'Adelante / Frente', category: 'position' },
@@ -149,6 +165,17 @@ export const WORDS: Word[] = [
   { id: 'deurama', korean: '드라마', spanish: 'Serie / Dorama / Telenovela', category: 'object', note: 'deu-ra-ma' },
   { id: 'norae', korean: '노래', spanish: 'Canción', category: 'object', note: 'no-rae' },
   { id: 'hwaldong', korean: '활동', spanish: 'Actividad', category: 'object', note: 'hwal-dong' },
+  { id: 'yaksok', korean: '약속', spanish: 'Cita / Compromiso / Promesa', category: 'object', note: 'yak-sok' },
+  { id: 'il-work', korean: '일', spanish: 'Asunto / Trabajo / Quehacer', category: 'object', note: 'il' },
+  { id: 'konseoteu', korean: '콘서트', spanish: 'Concierto', category: 'object', note: 'kon-seo-teu' },
+  { id: 'chukgu-gyeonggi', korean: '축구 경기', spanish: 'Partido de fútbol', category: 'object', note: 'chuk-gu gyeong-gi' },
+  { id: 'nonggu', korean: '농구', spanish: 'Baloncesto / Básquet', category: 'object', note: 'nong-gu' },
+  { id: 'yeohaeng', korean: '여행', spanish: 'Viaje', category: 'object', note: 'yeo-haeng' },
+  { id: 'deungsan', korean: '등산', spanish: 'Senderismo / Montañismo', category: 'object', note: 'deung-san' },
+  { id: 'naksi', korean: '낚시', spanish: 'Pesca', category: 'object', note: 'nak-si (se pronuncia [낙씨])' },
+  { id: 'undonghwa', korean: '운동화', spanish: 'Zapatillas deportivas', category: 'object', note: 'un-dong-hwa' },
+  { id: 'mueot-mwol', korean: '무엇 / 뭘', spanish: 'Qué', category: 'object', note: 'mueot / mwol (뭘 es contracción de 무엇을)' },
+  { id: 'jilmun', korean: '질문', spanish: 'Pregunta', category: 'object', note: 'jil-mun' },
 
   // --- CONTADORES Y UNIDADES NUMÉRICAS (단위 및 수사) ---
   { id: 'gae', korean: '개', spanish: 'Unidades / Cosas (contador general)', category: 'counter', note: 'gae - Usa números Nativos: 한 개, 두 개...' },
@@ -513,6 +540,51 @@ export const WORDS: Word[] = [
     verbForms: { present: '무거워요', past: '무거웠어요', negative: '안 무거워요' },
     note: 'Irregular ㅂ: 무겁다 → 무거워요',
   },
+  {
+    id: 'itda',
+    korean: '있다',
+    spanish: 'Haber / Tener (estar presente)',
+    category: 'adjective',
+    present: '있어요',
+    verbForms: { present: '있어요', past: '있었어요', honorific: '있으세요 / 계세요', pronunciation: '읻따 → 이써요' },
+    note: 'Opuesto: 없다 · Pronunciación: 있어요 [이써요]',
+  },
+  {
+    id: 'eopda',
+    korean: '없다',
+    spanish: 'No haber / No tener (estar ausente)',
+    category: 'adjective',
+    present: '없어요',
+    verbForms: { present: '없어요', past: '없었어요', honorific: '없으세요', pronunciation: '업따 → 업써요' },
+    note: 'Opuesto: 있다 · Pronunciación: 없어요 [업써요]',
+  },
+  {
+    id: 'teukbyeolhada',
+    korean: '특별하다',
+    spanish: 'Ser especial',
+    category: 'adjective',
+    present: '특별해요',
+    verbForms: { present: '특별해요', past: '특별했어요', negative: '안 특별해요' },
+    note: 'Con sustantivo: 특별한 (ej. 특별한 일 = algo especial)',
+  },
+  {
+    id: 'dareuda',
+    korean: '다르다',
+    spanish: 'Ser diferente / Otro',
+    category: 'adjective',
+    present: '달라요',
+    verbForms: { present: '달라요', past: '달랐어요', negative: '안 달라요' },
+    note: 'Irregular 르: 다르다 → 달라요 · Con sustantivo: 다른',
+  },
+  {
+    id: 'bappeuda',
+    korean: '바쁘다',
+    spanish: 'Estar ocupado/a',
+    category: 'adjective',
+    present: '바빠요',
+    verbForms: { present: '바빠요', past: '바빴어요', negative: '안 바빠요', honorific: '바쁘세요' },
+    note: 'Irregular ㅡ: 바쁘다 → 바빠요',
+  },
 
   // --- CALENDARIO: MESES Y DÍAS (날짜와 요일) ---
   // Meses del Año (월)
@@ -539,6 +611,11 @@ export const WORDS: Word[] = [
   { id: 'iryoil', korean: '일요일', spanish: 'Domingo', category: 'calendar', note: 'i-ryo-il (Día del Sol ☀️)' },
   { id: 'naeil', korean: '내일', spanish: 'Mañana (el día siguiente)', category: 'calendar', note: 'nae-il' },
   { id: 'jumal', korean: '주말', spanish: 'Fin de semana', category: 'calendar', note: 'ju-mal · 주말에 뭐 해요? = ¿Qué hacés el fin de semana?' },
+  { id: 'ibeon-jumal', korean: '이번 주말', spanish: 'Este fin de semana', category: 'calendar', note: 'i-beon ju-mal' },
+  { id: 'oneul', korean: '오늘', spanish: 'Hoy', category: 'calendar', note: 'o-neul' },
+  { id: 'jigeum', korean: '지금', spanish: 'Ahora', category: 'calendar', note: 'ji-geum' },
+  { id: 'sigan', korean: '시간', spanish: 'Tiempo / Hora', category: 'calendar', note: 'si-gan' },
+  { id: 'banghak', korean: '방학', spanish: 'Vacaciones (escolares / universitarias)', category: 'calendar', note: 'bang-hak' },
 
   // --- CLIMA, TEMPERATURA Y ESTACIONES (날씨와 계절) ---
   // Estado del tiempo
