@@ -14,6 +14,7 @@ export type WordCategory =
   | 'weather';
 
 export interface VerbForms {
+  want?: string;
   present?: string;
   past?: string;
   negative?: string;

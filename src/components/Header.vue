@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Target, Mic, PenLine, BookOpen, Clock, User, LogOut } from 'lucide-vue-next';
+import { Target, Mic, PenLine, Sparkles, Clock, User, LogOut } from 'lucide-vue-next';
 
-export type AppTab = 'study' | 'voice' | 'write' | 'numbers' | 'vocabulary';
+export type AppTab = 'study' | 'voice' | 'write' | 'verbs' | 'numbers' | 'vocabulary';
 
 defineProps<{
   activeTab: AppTab;
@@ -92,6 +92,16 @@ const emit = defineEmits<{
 
         <button
           type="button"
+          @click="emit('update:activeTab', 'verbs')"
+          data-testid="button-nav-verbs"
+          :class="['nav-btn', activeTab === 'verbs' ? 'is-active' : '']"
+        >
+          <Sparkles :size="15" :stroke-width="2.2" />
+          <span>Verbos</span>
+        </button>
+
+        <button
+          type="button"
           @click="emit('update:activeTab', 'numbers')"
           data-testid="button-nav-numbers"
           :class="['nav-btn', activeTab === 'numbers' ? 'is-active' : '']"
@@ -99,16 +109,6 @@ const emit = defineEmits<{
           <Clock :size="15" :stroke-width="2.2" />
           <span class="tab-label-desktop">Horas & Números</span>
           <span class="tab-label-mobile">Números</span>
-        </button>
-
-        <button
-          type="button"
-          @click="emit('update:activeTab', 'vocabulary')"
-          data-testid="button-nav-vocabulary"
-          :class="['nav-btn', activeTab === 'vocabulary' ? 'is-active' : '']"
-        >
-          <BookOpen :size="15" :stroke-width="2.2" />
-          <span>Cuaderno</span>
         </button>
       </nav>
 

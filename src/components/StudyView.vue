@@ -415,6 +415,27 @@ const handleToggleKnownBadge = (event: Event) => {
                       <Volume2 :size="14" />
                     </button>
                   </div>
+
+                  <!-- Deseo -고 싶다 -->
+                  <div
+                    v-if="activeWord.verbForms?.want"
+                    class="conjugation-cell col-span-2"
+                  >
+                    <div class="min-w-0 pr-1">
+                      <span class="nuri-mono cell-label text-[#f9a8d4]">Querer (-고 싶다)</span>
+                      <span class="cell-val text-[#fbcfe8] truncate block">
+                        {{ activeWord.verbForms.want }}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      @click="handlePlayAudio(activeWord.verbForms.want, $event)"
+                      class="cell-audio-btn text-[#f9a8d4] hover:text-white shrink-0"
+                      title="Escuchar"
+                    >
+                      <Volume2 :size="14" />
+                    </button>
+                  </div>
                 </div>
 
                 <!-- Pronunciación fonética -->

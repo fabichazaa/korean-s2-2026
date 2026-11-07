@@ -6,6 +6,8 @@ import Header, { type AppTab } from './components/Header.vue';
 import StudyView from './components/StudyView.vue';
 import VoiceGameView from './components/VoiceGameView.vue';
 import WritingGameView from './components/WritingGameView.vue';
+import VerbPracticeView from './components/VerbPracticeView.vue';
+import { BookOpen } from 'lucide-vue-next';
 import VocabularyView from './components/VocabularyView.vue';
 import TimeNumbersView from './components/TimeNumbersView.vue';
 import LoadingState from './components/LoadingState.vue';
@@ -502,6 +504,11 @@ const onKeyDown = (event: KeyboardEvent) => {
           @mark-known="markWordWrittenFromGame"
         />
 
+        <!-- Verb & Adjective Conjugation Trainer + Class Table -->
+        <VerbPracticeView
+          v-else-if="activeTab === 'verbs'"
+        />
+
         <!-- Time & Numbers Interactive Trainer -->
         <TimeNumbersView
           v-else-if="activeTab === 'numbers'"
@@ -520,6 +527,21 @@ const onKeyDown = (event: KeyboardEvent) => {
           @toggle-known="toggleKnownInTable"
         />
       </main>
+
+      <!-- Footer with Notebook (Cuaderno) shortcut -->
+      <footer class="app-footer">
+        <button
+          type="button"
+          data-testid="button-footer-vocabulary"
+          :class="['footer-notebook-btn', activeTab === 'vocabulary' ? 'is-active' : '']"
+          @click="activeTab = activeTab === 'vocabulary' ? 'study' : 'vocabulary'"
+        >
+          <BookOpen :size="16" :stroke-width="2.2" />
+          <span>
+            {{ activeTab === 'vocabulary' ? 'Volver a las tarjetas' : `Abrir Cuaderno de Vocabulario (${WORDS.length} palabras)` }}
+          </span>
+        </button>
+      </footer>
     </div>
 
     <!-- Auth Modal -->
@@ -551,5 +573,39 @@ const onKeyDown = (event: KeyboardEvent) => {
 }
 .pb-12 {
   padding-bottom: 3rem;
+}
+
+.app-footer {
+  margin-top: 2rem;
+  padding: 0 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.footer-notebook-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(30, 35, 56, 0.04);
+  transition: all 0.18s ease;
+}
+
+.footer-notebook-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.footer-notebook-btn.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
 }
 </style>
